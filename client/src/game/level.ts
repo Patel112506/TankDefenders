@@ -135,11 +135,19 @@ export class Level {
         const distance = Math.sqrt(nx * nx + nz * nz) * 3;
         elevation -= Math.exp(-distance * distance) * 0.5;
 
-        // Determine terrain type based on elevation and noise
+        // Add some plateaus and valleys using a threshold function
+        elevation = Math.pow(Math.abs(elevation), 0.8) * Math.sign(elevation);
+
+        // Amplify the elevation further
+        elevation *= 2;
+
+        // Determine terrain type based on elevation and additional noise for variety
+        const moistureNoise = noise2D(nx * 3, nz * 3) * 0.5; // Additional noise for terrain variety
         let type: 'grass' | 'dirt' | 'sand';
+
         if (elevation > 0.6) {
           type = 'dirt';
-        } else if (elevation > 0) {
+        } else if (elevation > -0.2 + moistureNoise) {
           type = 'grass';
         } else {
           type = 'sand';
@@ -153,7 +161,7 @@ export class Level {
   }
 
   private addDecorations(terrainData: TerrainPoint[][]) {
-    // Add rocks
+    // Add rocks with more variety in size and placement
     const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
     const rockMaterial = new THREE.MeshStandardMaterial({ 
       color: 0x808080,
@@ -161,7 +169,8 @@ export class Level {
       metalness: 0.1,
     });
 
-    for (let i = 0; i < 50; i++) {
+    // Add more rocks for a denser landscape
+    for (let i = 0; i < 100; i++) {
       const rock = new THREE.Mesh(rockGeometry, rockMaterial);
       const x = Math.random() * this.mapSize - this.mapSize / 2;
       const z = Math.random() * this.mapSize - this.mapSize / 2;
@@ -171,20 +180,23 @@ export class Level {
       const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * this.terrainResolution);
       const elevation = terrainData[terrainZ][terrainX].elevation * 3; // Match the amplified terrain
 
-      rock.position.set(x, elevation + 0.5, z);
-      rock.scale.set(
-        0.5 + Math.random() * 1.5,
-        0.5 + Math.random() * 1.5,
-        0.5 + Math.random() * 1.5
-      );
-      rock.rotation.set(
-        Math.random() * Math.PI,
-        Math.random() * Math.PI,
-        Math.random() * Math.PI
-      );
+      // Only place rocks on higher ground
+      if (elevation > 0) {
+        rock.position.set(x, elevation + 0.5, z);
+        rock.scale.set(
+          0.5 + Math.random() * 1.5,
+          0.5 + Math.random() * 1.5,
+          0.5 + Math.random() * 1.5
+        );
+        rock.rotation.set(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+          Math.random() * Math.PI
+        );
 
-      this.decorations.push(rock);
-      this.scene.add(rock);
+        this.decorations.push(rock);
+        this.scene.add(rock);
+      }
     }
   }
 
