@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { Projectile } from './projectile';
 
 export class Tank {
-  private speed = 0.3; // Increased from 0.1
-  private rotationSpeed = 0.08; // Increased from 0.05
+  private speed: number;
+  private rotationSpeed: number;
   private health = 100;
   private projectiles: Projectile[] = [];
   private isPlayer: boolean;
@@ -13,12 +13,15 @@ export class Tank {
   private state: 'patrol' | 'chase' | 'attack' = 'patrol';
   private patrolPoint: THREE.Vector3 = new THREE.Vector3();
   private targetPosition: THREE.Vector3 = new THREE.Vector3();
-  private detectionRange = 20;
-  private attackRange = 15;
+  private detectionRange = 15; // Reduced from 20
+  private attackRange = 10; // Reduced from 15
 
   constructor(scene: THREE.Scene, isPlayer: boolean) {
     this.scene = scene;
     this.isPlayer = isPlayer;
+    // Different speeds for player and enemies
+    this.speed = isPlayer ? 0.3 : 0.15; // Player is faster than enemies
+    this.rotationSpeed = isPlayer ? 0.08 : 0.04; // Player turns faster than enemies
     this.mesh = new THREE.Group();
 
     // Tank body
@@ -110,19 +113,19 @@ export class Tank {
       this.targetPosition.copy(this.patrolPoint);
     }
 
-    // Execute behavior based on state
+    // Execute behavior based on state with reduced shooting frequency
     switch (this.state) {
       case 'patrol':
         this.moveTowardsTarget(this.patrolPoint);
-        if (Math.random() < 0.01) this.shoot();
+        if (Math.random() < 0.005) this.shoot(); // Reduced from 0.01
         break;
       case 'chase':
         this.moveTowardsTarget(playerPosition);
-        if (Math.random() < 0.03) this.shoot();
+        if (Math.random() < 0.01) this.shoot(); // Reduced from 0.03
         break;
       case 'attack':
         this.moveTowardsTarget(playerPosition);
-        if (Math.random() < 0.1) this.shoot();
+        if (Math.random() < 0.03) this.shoot(); // Reduced from 0.1
         break;
     }
   }

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 export class Projectile {
   private mesh: THREE.Mesh;
   private velocity: THREE.Vector3;
-  private speed = 0.5;
+  private speed = 0.4; 
   private lifetime = 100;
   private damage = 25;
   private isPlayerProjectile: boolean;
@@ -21,7 +21,7 @@ export class Projectile {
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.position.copy(position);
 
-    // Calculate velocity based on rotation
+    
     this.velocity = new THREE.Vector3(
       Math.sin(rotation) * this.speed,
       0,
@@ -33,7 +33,7 @@ export class Projectile {
   }
 
   update() {
-    // Move projectile
+    
     this.mesh.position.add(this.velocity);
     this.lifetime--;
   }
