@@ -21,7 +21,7 @@ export class Tank {
     this.scene = scene;
     this.isPlayer = isPlayer;
     // Different speeds for player and enemies
-    this.speed = isPlayer ? 20 : 0.15; // Balanced speed for BlockTanks-like movement
+    this.speed = isPlayer ? 22 : 0.15; // Increased base speed for player slightly
     this.rotationSpeed = isPlayer ? 0.3 : 0.04; // Slightly increased rotation for better responsiveness
     // Different health values for player and enemies
     this.health = isPlayer ? 500 : 300; // Player: 500 HP, Enemies: 300 HP
@@ -84,7 +84,7 @@ export class Tank {
       const targetRotation = angle;
       const currentRotation = this.mesh.rotation.y;
       const rotationDiff = (targetRotation - currentRotation + Math.PI) % (Math.PI * 2) - Math.PI;
-      this.mesh.rotation.y += rotationDiff * 0.3;
+      this.mesh.rotation.y += rotationDiff * 0.2; // Adjusted interpolation for smoother turning
 
       // Calculate movement direction
       const moveDirection = new THREE.Vector3(
@@ -94,7 +94,7 @@ export class Tank {
       ).normalize();
 
       // Apply movement with responsive acceleration
-      const moveSpeed = this.speed * force * (1 + force); // Non-linear speed scaling
+      const moveSpeed = this.speed * force * (1 + 0.5 * force); // Fine-tuned acceleration curve
       this.mesh.position.add(moveDirection.multiplyScalar(moveSpeed));
     }
 
