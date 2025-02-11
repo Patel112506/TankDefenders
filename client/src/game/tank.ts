@@ -2,9 +2,8 @@ import * as THREE from 'three';
 import { Projectile } from './projectile';
 
 export class Tank {
-  private mesh: THREE.Group;
-  private speed = 0.1;
-  private rotationSpeed = 0.05;
+  private speed = 0.3; // Increased from 0.1
+  private rotationSpeed = 0.08; // Increased from 0.05
   private health = 100;
   private projectiles: Projectile[] = [];
   private isPlayer: boolean;
@@ -220,4 +219,5 @@ export class Tank {
       }
     });
   }
+  private mesh: THREE.Group;
 }
