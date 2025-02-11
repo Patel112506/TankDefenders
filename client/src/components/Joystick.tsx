@@ -16,26 +16,20 @@ export function Joystick({ onMove, onEnd }: JoystickProps) {
       zone: containerRef.current,
       mode: 'static',
       position: { left: '50%', top: '50%' },
-      color: 'white',
-      size: 150, // Increased size for better control area
+      color: '#ffffff',
+      size: 100,
       lockX: false,
       lockY: false,
       dynamicPage: true,
       maxNumberOfNipples: 1,
-      threshold: 0.05, // Lower threshold for more sensitive response
-      fadeTime: 50, // Faster fade for more responsive feel
+      threshold: 0.1,
     });
 
     joystick.on('move', (_, data) => {
       if (data.angle && data.force) {
-        // Smoother angle calculation with normalization
-        const normalizedAngle = (data.angle.radian + Math.PI) % (2 * Math.PI);
-        // Smoother force scaling with cubic easing
-        const normalizedForce = Math.pow(Math.min(data.force / 50, 1), 2);
-
         onMove({
-          angle: normalizedAngle,
-          force: normalizedForce
+          angle: data.angle.radian,
+          force: Math.min(data.force / 50, 1)
         });
       }
     });
@@ -48,10 +42,21 @@ export function Joystick({ onMove, onEnd }: JoystickProps) {
   }, [onMove, onEnd]);
 
   return (
-    <div 
-      ref={containerRef}
-      className="fixed bottom-20 left-20 w-60 h-60 bg-black/20 rounded-full backdrop-blur-sm" 
-      style={{ touchAction: 'none' }}
-    />
+    <div className="fixed bottom-20 left-20 w-40 h-40">
+      {/* Outer circle */}
+      <div 
+        className="absolute inset-0 rounded-full border-4 border-white/30 bg-black/20 backdrop-blur-sm"
+        style={{ touchAction: 'none' }}
+      >
+        {/* Inner circle (static position indicator) */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white/50" />
+      </div>
+      {/* Joystick container */}
+      <div 
+        ref={containerRef}
+        className="absolute inset-0" 
+        style={{ touchAction: 'none' }}
+      />
+    </div>
   );
 }

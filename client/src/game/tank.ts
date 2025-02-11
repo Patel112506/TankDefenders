@@ -80,17 +80,22 @@ export class Tank {
     if (this.isPlayer && this.joystickMovement) {
       const { angle, force } = this.joystickMovement;
 
-      // Smooth rotation interpolation
+      // Set tank rotation smoothly
       const targetRotation = angle;
       const currentRotation = this.mesh.rotation.y;
       const rotationDiff = (targetRotation - currentRotation + Math.PI) % (Math.PI * 2) - Math.PI;
-      this.mesh.rotation.y += rotationDiff * 0.15; // Smooth rotation interpolation
+      this.mesh.rotation.y += rotationDiff * 0.2;
 
-      // Move tank forward with smooth acceleration
-      const direction = new THREE.Vector3(0, 0, 1);
-      direction.applyQuaternion(this.mesh.quaternion);
-      const moveSpeed = this.speed * force * (1 + force); // Non-linear speed scaling
-      this.mesh.position.add(direction.multiplyScalar(moveSpeed));
+      // Calculate movement direction
+      const moveDirection = new THREE.Vector3(
+        Math.sin(angle),
+        0,
+        Math.cos(angle)
+      ).normalize();
+
+      // Apply movement with smooth acceleration
+      const moveSpeed = this.speed * force;
+      this.mesh.position.add(moveDirection.multiplyScalar(moveSpeed));
     }
 
     // Update projectiles
