@@ -27,7 +27,7 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
 
     // Draw terrain grid with improved visuals
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    const gridSize = 20;
+    const gridSize = 40; // More grid lines for larger map
     const gridStep = canvas.width / gridSize;
 
     for (let i = 1; i < gridSize; i++) {
@@ -49,15 +49,15 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
 
     // Draw cardinal directions
     ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-    ctx.font = '12px Arial';
+    ctx.font = '14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('N', canvas.width / 2, 15);
-    ctx.fillText('S', canvas.width / 2, canvas.height - 5);
-    ctx.fillText('W', 10, canvas.height / 2);
-    ctx.fillText('E', canvas.width - 10, canvas.height / 2);
+    ctx.fillText('N', canvas.width / 2, 20);
+    ctx.fillText('S', canvas.width / 2, canvas.height - 10);
+    ctx.fillText('W', 15, canvas.height / 2);
+    ctx.fillText('E', canvas.width - 15, canvas.height / 2);
 
     // Draw player (green dot with pulse effect)
-    const pulseSize = 6 + Math.sin(Date.now() * 0.01) * 2;
+    const pulseSize = 8 + Math.sin(Date.now() * 0.01) * 2;
 
     // Pulse glow
     const gradient = ctx.createRadialGradient(
@@ -105,7 +105,7 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
         0,
         (pos.x + mapSize / 2) * scale,
         (pos.z + mapSize / 2) * scale,
-        10
+        15
       );
       threatGradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
       threatGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
@@ -115,7 +115,7 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
       ctx.arc(
         (pos.x + mapSize / 2) * scale,
         (pos.z + mapSize / 2) * scale,
-        10,
+        15,
         0,
         Math.PI * 2
       );
@@ -128,7 +128,7 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
       ctx.arc(
         (pos.x + mapSize / 2) * scale,
         (pos.z + mapSize / 2) * scale,
-        4,
+        6,
         0,
         Math.PI * 2
       );
@@ -140,8 +140,8 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
   return (
     <canvas
       ref={canvasRef}
-      width={200}
-      height={200}
+      width={300}
+      height={300}
       className="border border-white/20 rounded-lg shadow-lg"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
     />

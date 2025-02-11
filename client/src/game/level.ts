@@ -10,8 +10,8 @@ export class Level {
   private scene: THREE.Scene;
   private levelNumber: number;
   private obstacles: THREE.Mesh[] = [];
-  private mapSize = 100; // Increased map size
-  private terrainResolution = 100;
+  private mapSize = 200; // Doubled map size for more expansive terrain
+  private terrainResolution = 200; // Increased resolution for better detail
   private terrain!: THREE.Mesh;
   private decorations: THREE.Mesh[] = [];
 
@@ -40,20 +40,6 @@ export class Level {
       positions[i + 1] = terrainData[z][x].elevation * 3; // Amplify elevation for more dramatic hills
     }
     groundGeometry.computeVertexNormals();
-
-    // Create blended terrain texture
-    const textureLoader = new THREE.TextureLoader();
-    const grassTexture = textureLoader.load('/textures/grass.jpg');
-    const dirtTexture = textureLoader.load('/textures/dirt.jpg');
-    const sandTexture = textureLoader.load('/textures/sand.jpg');
-
-    grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
-    dirtTexture.wrapS = dirtTexture.wrapT = THREE.RepeatWrapping;
-    sandTexture.wrapS = sandTexture.wrapT = THREE.RepeatWrapping;
-
-    grassTexture.repeat.set(20, 20);
-    dirtTexture.repeat.set(20, 20);
-    sandTexture.repeat.set(20, 20);
 
     // Create custom shader material for terrain blending
     const groundMaterial = new THREE.MeshStandardMaterial({
@@ -131,7 +117,7 @@ export class Level {
         elevation += noise2D(nx * 8, nz * 8) * 0.25; // Small features
         elevation += noise2D(nx * 16, nz * 16) * 0.125; // Fine details
 
-        // Add some crater-like formations
+        // Add some crater-like formations for more variety
         const distance = Math.sqrt(nx * nx + nz * nz) * 3;
         elevation -= Math.exp(-distance * distance) * 0.5;
 
@@ -142,7 +128,7 @@ export class Level {
         elevation *= 2;
 
         // Determine terrain type based on elevation and additional noise for variety
-        const moistureNoise = noise2D(nx * 3, nz * 3) * 0.5; // Additional noise for terrain variety
+        const moistureNoise = noise2D(nx * 3, nz * 3) * 0.5;
         let type: 'grass' | 'dirt' | 'sand';
 
         if (elevation > 0.6) {
@@ -170,7 +156,7 @@ export class Level {
     });
 
     // Add more rocks for a denser landscape
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 200; i++) { // Doubled rock count
       const rock = new THREE.Mesh(rockGeometry, rockMaterial);
       const x = Math.random() * this.mapSize - this.mapSize / 2;
       const z = Math.random() * this.mapSize - this.mapSize / 2;
@@ -178,7 +164,7 @@ export class Level {
       // Find the elevation at this point
       const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * this.terrainResolution);
       const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * this.terrainResolution);
-      const elevation = terrainData[terrainZ][terrainX].elevation * 3; // Match the amplified terrain
+      const elevation = terrainData[terrainZ][terrainX].elevation * 3;
 
       // Only place rocks on higher ground
       if (elevation > 0) {
@@ -221,15 +207,7 @@ export class Level {
   }
 
   getEnemyCount() {
-    // Progressive enemy count based on level
-    switch (this.levelNumber) {
-      case 1:
-        return 2; // Starting with 2 enemies
-      case 2:
-        return 3; // Increasing to 3 enemies
-      default:
-        return 4; // Levels 3-5 have 4 enemies
-    }
+    return Math.min(2 + this.levelNumber, 5);
   }
 
   getMapSize() {
@@ -243,14 +221,12 @@ export class Level {
       (this.terrain.material as THREE.Material).dispose();
     }
 
-    // Clean up obstacles
     this.obstacles.forEach(obstacle => {
       this.scene.remove(obstacle);
       obstacle.geometry.dispose();
       (obstacle.material as THREE.Material).dispose();
     });
 
-    // Clean up decorations
     this.decorations.forEach(decoration => {
       this.scene.remove(decoration);
       decoration.geometry.dispose();
