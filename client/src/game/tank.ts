@@ -21,8 +21,8 @@ export class Tank {
     this.scene = scene;
     this.isPlayer = isPlayer;
     // Different speeds for player and enemies
-    this.speed = isPlayer ? 5 : 0.15; // Increased player speed significantly
-    this.rotationSpeed = isPlayer ? 0.1 : 0.04;
+    this.speed = isPlayer ? 40 : 0.15; // Dramatically increased player speed for better responsiveness
+    this.rotationSpeed = isPlayer ? 0.25 : 0.04; // Increased rotation speed for even better turning
     // Different health values for player and enemies
     this.health = isPlayer ? 500 : 300; // Player: 500 HP, Enemies: 300 HP
     this.mesh = new THREE.Group();
@@ -80,7 +80,7 @@ export class Tank {
     if (this.isPlayer && this.joystickMovement) {
       const { angle, force } = this.joystickMovement;
 
-      // Rotate tank to match joystick direction
+      // Instant rotation for more responsive control
       this.mesh.rotation.y = angle;
 
       // Move tank forward based on joystick force
