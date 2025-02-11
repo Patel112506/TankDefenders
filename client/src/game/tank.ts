@@ -17,6 +17,35 @@ export class Tank {
   private attackRange = 10;
   private keys: { [key: string]: boolean } = {};
 
+  handleInput(event: KeyboardEvent) {
+    if (!this.isPlayer) return;
+    this.handleKeyDown(event);
+  }
+
+  handleKeyDown(event: KeyboardEvent) {
+    if (!this.isPlayer) return;
+    this.keys[event.key] = true;
+
+    if (event.key === ' ') {
+      this.shoot();
+    }
+  }
+
+  handleKeyUp(event: KeyboardEvent) {
+    if (!this.isPlayer) return;
+    this.keys[event.key] = false;
+  }
+
+  handleMouseMove(event: MouseEvent) {
+    if (!this.isPlayer) return;
+
+    // Calculate rotation based on mouse position relative to center of screen
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const angleToMouse = Math.atan2(event.clientX - centerX, centerY - event.clientY);
+    this.mesh.rotation.y = angleToMouse;
+  }
+
   constructor(scene: THREE.Scene, isPlayer: boolean) {
     this.scene = scene;
     this.isPlayer = isPlayer;
@@ -57,36 +86,12 @@ export class Tank {
 
     if (isPlayer) {
       // Set up keyboard controls for player
-      window.addEventListener('keydown', (e) => this.handleKeyDown(e));
-      window.addEventListener('keyup', (e) => this.handleKeyUp(e));
-      window.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+      window.addEventListener('keydown', this.handleKeyDown.bind(this));
+      window.addEventListener('keyup', this.handleKeyUp.bind(this));
+      window.addEventListener('mousemove', this.handleMouseMove.bind(this));
     } else {
       this.setNewPatrolPoint();
     }
-  }
-
-  private handleKeyDown(event: KeyboardEvent) {
-    if (!this.isPlayer) return;
-    this.keys[event.key] = true;
-
-    if (event.key === ' ') {
-      this.shoot();
-    }
-  }
-
-  private handleKeyUp(event: KeyboardEvent) {
-    if (!this.isPlayer) return;
-    this.keys[event.key] = false;
-  }
-
-  private handleMouseMove(event: MouseEvent) {
-    if (!this.isPlayer) return;
-
-    // Calculate rotation based on mouse position relative to center of screen
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    const angleToMouse = Math.atan2(event.clientX - centerX, centerY - event.clientY);
-    this.mesh.rotation.y = angleToMouse;
   }
 
   update(playerPosition?: THREE.Vector3) {
@@ -212,8 +217,8 @@ export class Tank {
   }
 
   takeDamage(amount: number) {
-    this.health -= amount; 
-    if (this.health < 0) this.health = 0; 
+    this.health -= amount;
+    if (this.health < 0) this.health = 0;
     return this.health <= 0;
   }
 
@@ -235,9 +240,9 @@ export class Tank {
 
   dispose() {
     if (this.isPlayer) {
-      window.removeEventListener('keydown', this.handleKeyDown);
-      window.removeEventListener('keyup', this.handleKeyUp);
-      window.removeEventListener('mousemove', this.handleMouseMove);
+      window.removeEventListener('keydown', this.handleKeyDown.bind(this));
+      window.removeEventListener('keyup', this.handleKeyUp.bind(this));
+      window.removeEventListener('mousemove', this.handleMouseMove.bind(this));
     }
     this.projectiles.forEach(projectile => projectile.dispose());
     this.scene.remove(this.mesh);

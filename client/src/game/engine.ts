@@ -54,7 +54,6 @@ export class GameEngine {
 
     // Event listeners
     window.addEventListener('resize', this.onWindowResize.bind(this));
-    document.addEventListener('keydown', this.handleInput.bind(this));
   }
 
   setUICallbacks(callbacks: UICallbacks) {
@@ -64,6 +63,8 @@ export class GameEngine {
   init() {
     this.currentLevel.load();
     this.spawnEnemies();
+    // Add event listener for keyboard input
+    document.addEventListener('keydown', this.handleInput.bind(this));
     this.animate();
     this.updateUI();
   }
@@ -123,9 +124,8 @@ export class GameEngine {
   }
 
   private handleInput(event: KeyboardEvent) {
-    if (!this.isPaused) {
-      this.playerTank.handleInput(event);
-    }
+    if (this.isPaused) return;
+    this.playerTank?.handleKeyDown(event);
     if (event.key === 'Escape') {
       this.togglePause();
     }
@@ -245,8 +245,9 @@ export class GameEngine {
     this.powerUps.forEach(powerUp => powerUp.dispose());
     this.currentLevel.dispose();
     this.renderer.dispose();
+    // Remove event listener
+    document.removeEventListener('keydown', this.handleInput.bind(this));
     window.removeEventListener('resize', this.onWindowResize);
-    document.removeEventListener('keydown', this.handleInput);
   }
 
   getPlayerTank() {
