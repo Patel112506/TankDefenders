@@ -31,14 +31,14 @@ export class GameEngine {
   private moonLight: THREE.DirectionalLight;
 
   constructor(container: HTMLElement) {
-    // Scene setup with dark sky
+    // Scene setup with light blue sky
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000010); // Very dark blue
+    this.scene.background = new THREE.Color(0x87CEEB); // Light blue sky
 
-    // Add fog for night atmosphere
-    this.scene.fog = new THREE.Fog(0x000010, 50, 200);
+    // Add distance fog for depth
+    this.scene.fog = new THREE.Fog(0xc4a484, 100, 300);
 
-    // Camera setup with wider FOV for better night vision
+    // Camera setup with wider FOV
     this.camera = new THREE.PerspectiveCamera(
       85,
       window.innerWidth / window.innerHeight,
@@ -46,7 +46,7 @@ export class GameEngine {
       1000
     );
 
-    // Enhanced renderer with better shadows
+    // Enhanced renderer
     this.renderer = new THREE.WebGLRenderer({ 
       antialias: true,
       logarithmicDepthBuffer: true 
@@ -56,22 +56,22 @@ export class GameEngine {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
 
-    // Initial camera position
+    // Camera initial position
     this.camera.position.set(0, 15, 30);
     this.camera.lookAt(0, 0, 0);
 
-    // Nighttime lighting setup
-    const ambientLight = new THREE.AmbientLight(0x111122, 0.3); // Dim blue ambient light
+    // Desert lighting setup
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(ambientLight);
 
-    // Moon light
-    this.moonLight = new THREE.DirectionalLight(0x6666ff, 0.8);
+    // Sun light
+    this.moonLight = new THREE.DirectionalLight(0xffffff, 1.0);
     this.moonLight.position.set(100, 100, 50);
     this.moonLight.castShadow = true;
     this.scene.add(this.moonLight);
 
     // Add subtle hemisphere light for better terrain visibility
-    const hemisphereLight = new THREE.HemisphereLight(0x000066, 0x000000, 0.3);
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0xc4a484, 0.3);
     this.scene.add(hemisphereLight);
 
     // Initialize game objects

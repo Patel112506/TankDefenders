@@ -22,7 +22,7 @@ export class Level {
   }
 
   load() {
-    // Create starfield
+    // Create starfield in the background
     this.createStars();
 
     // Generate terrain data
@@ -45,16 +45,14 @@ export class Level {
     }
     groundGeometry.computeVertexNormals();
 
-    // Create material optimized for night viewing
+    // Create material for desert terrain
     const groundMaterial = new THREE.MeshStandardMaterial({
       vertexColors: true,
       roughness: 0.9,
       metalness: 0.1,
-      emissive: new THREE.Color(0x222244), // Slight blue glow for moonlight
-      emissiveIntensity: 0.1
     });
 
-    // Apply vertex colors with nighttime palette
+    // Apply vertex colors
     const colors = new Float32Array(positions.length);
     const normal = new THREE.Vector3();
 
@@ -67,20 +65,20 @@ export class Level {
       ).normalize();
       const slope = 1 - normal.dot(new THREE.Vector3(0, 1, 0));
 
-      // Nighttime desert color palette
+      // Desert color palette
       let color = new THREE.Color();
       if (height > 6) {
-        // Dark mountains
-        color.setRGB(0.15, 0.15, 0.2);
+        // Rocky mountains
+        color.setRGB(0.55, 0.5, 0.45);
       } else if (slope > 0.5) {
-        // Steep slopes
-        color.setRGB(0.1, 0.1, 0.15);
+        // Steep rocky slopes
+        color.setRGB(0.6, 0.55, 0.5);
       } else if (height > 2) {
-        // Dunes catching moonlight
-        color.setRGB(0.25, 0.25, 0.35);
+        // Light sand dunes
+        color.setRGB(0.95, 0.9, 0.7);
       } else {
         // Dark sand valleys
-        color.setRGB(0.2, 0.2, 0.3);
+        color.setRGB(0.85, 0.8, 0.6);
       }
 
       colors[i] = color.r;
