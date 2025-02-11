@@ -15,13 +15,14 @@ export class Tank {
   private targetPosition: THREE.Vector3 = new THREE.Vector3();
   private detectionRange = 15;
   private attackRange = 10;
+  private joystickMovement: { angle: number; force: number } | null = null;
 
   constructor(scene: THREE.Scene, isPlayer: boolean) {
     this.scene = scene;
     this.isPlayer = isPlayer;
     // Different speeds for player and enemies
-    this.speed = isPlayer ? 1.2 : 0.15; // Increased player speed to 1.2 (4x original speed)
-    this.rotationSpeed = isPlayer ? 0.1 : 0.04; // Slightly increased rotation speed for better control
+    this.speed = isPlayer ? 1.2 : 0.15; // Player speed
+    this.rotationSpeed = isPlayer ? 0.1 : 0.04;
     this.mesh = new THREE.Group();
 
     // Tank body
@@ -58,31 +59,34 @@ export class Tank {
     }
   }
 
+  handleJoystickInput(data: { angle: number; force: number } | null) {
+    if (this.isPlayer) {
+      this.joystickMovement = data;
+    }
+  }
+
   handleInput(event: KeyboardEvent) {
     if (!this.isPlayer) return;
 
-    if (event.type === 'keydown') {
-      switch (event.key) {
-        case 'w':
-          this.moveForward();
-          break;
-        case 's':
-          this.moveBackward();
-          break;
-        case 'a':
-          this.rotate(-this.rotationSpeed);
-          break;
-        case 'd':
-          this.rotate(this.rotationSpeed);
-          break;
-        case ' ':
-          this.shoot();
-          break;
-      }
+    if (event.type === 'keydown' && event.key === ' ') {
+      this.shoot();
     }
   }
 
   update(playerPosition?: THREE.Vector3) {
+    // Handle joystick movement for player
+    if (this.isPlayer && this.joystickMovement) {
+      const { angle, force } = this.joystickMovement;
+
+      // Rotate tank to match joystick direction
+      this.mesh.rotation.y = angle;
+
+      // Move tank forward based on joystick force
+      const direction = new THREE.Vector3(0, 0, 1);
+      direction.applyQuaternion(this.mesh.quaternion);
+      this.mesh.position.add(direction.multiplyScalar(this.speed * force));
+    }
+
     // Update projectiles
     this.projectiles = this.projectiles.filter(projectile => {
       projectile.update();

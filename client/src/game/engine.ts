@@ -214,7 +214,7 @@ export class GameEngine {
     this.checkProjectileCollisions();
 
     this.camera.position.set(
-      playerPos.x, 
+      playerPos.x,
       playerPos.y + 10,
       playerPos.z + 20
     );
@@ -248,5 +248,9 @@ export class GameEngine {
     this.renderer.dispose();
     window.removeEventListener('resize', this.onWindowResize);
     document.removeEventListener('keydown', this.handleInput);
+  }
+
+  getPlayerTank() {
+    return this.playerTank;
   }
 }
