@@ -10,8 +10,8 @@ export class Level {
   private scene: THREE.Scene;
   private levelNumber: number;
   private obstacles: THREE.Mesh[] = [];
-  private mapSize = 400; // Large desert area
-  private terrainResolution = 400;
+  private mapSize = 2000; // Vastly increased map size
+  private terrainResolution = 1000; // Increased resolution for better detail
   private terrain!: THREE.Mesh;
   private decorations: THREE.Mesh[] = [];
   private towers: THREE.Group[] = [];
@@ -38,11 +38,10 @@ export class Level {
     for (let i = 0; i < positions.length; i += 3) {
       const x = Math.floor((i / 3) % this.terrainResolution);
       const z = Math.floor((i / 3) / this.terrainResolution);
-      positions[i + 1] = terrainData[z][x].elevation * 4; // More dramatic dunes
+      positions[i + 1] = terrainData[z][x].elevation * 8; // More dramatic elevation changes
     }
     groundGeometry.computeVertexNormals();
 
-    // Create custom shader material for desert terrain
     const groundMaterial = new THREE.MeshStandardMaterial({
       vertexColors: true,
       roughness: 0.9,
@@ -67,13 +66,13 @@ export class Level {
 
       // Desert color palette
       let color = new THREE.Color();
-      if (height > 3) {
+      if (height > 6) {
         // Rocky mountains
         color.setRGB(0.55, 0.5, 0.45);
       } else if (slope > 0.5) {
         // Steep rocky slopes
         color.setRGB(0.6, 0.55, 0.5);
-      } else if (height > 1) {
+      } else if (height > 2) {
         // Light sand dunes
         color.setRGB(0.95, 0.9, 0.7);
       } else {
@@ -111,22 +110,25 @@ export class Level {
         // Generate sand dunes using multiple noise layers
         let elevation = 0;
         elevation += noise2D(nx * 1.5, nz * 1.5) * 1.0;  // Large dunes
-        elevation += noise2D(nx * 3, nz * 3) * 0.5;     // Medium dunes
-        elevation += noise2D(nx * 6, nz * 6) * 0.25;    // Small ripples
+        elevation += noise2D(nx * 3, nz * 3) * 0.5;      // Medium dunes
+        elevation += noise2D(nx * 6, nz * 6) * 0.25;     // Small ripples
+        elevation += noise2D(nx * 12, nz * 12) * 0.125;  // Micro details
 
-        // Create some mountain ranges
+        // Create mountain ranges
         const ridgeNoise = Math.abs(noise2D(nx * 2, nz * 2));
-        elevation += Math.pow(ridgeNoise, 2) * 2;
+        elevation += Math.pow(ridgeNoise, 3) * 4; // More pronounced mountains
 
-        // Make the terrain more interesting with valleys
+        // Create vast desert plains and valleys
         const distance = Math.sqrt(nx * nx + nz * nz) * 2;
+        const plainNoise = noise2D(nx * 0.5, nz * 0.5) * 0.5;
+        elevation += plainNoise;
         elevation -= Math.exp(-distance * distance) * 0.3;
 
         // Determine terrain type
         let type: 'sand' | 'rock' | 'mountain';
         if (elevation > 2) {
           type = 'mountain';
-        } else if (elevation > 1) {
+        } else if (elevation > 1 || Math.abs(ridgeNoise) > 0.7) {
           type = 'rock';
         } else {
           type = 'sand';
@@ -140,29 +142,29 @@ export class Level {
   }
 
   private addDecorations(terrainData: TerrainPoint[][]) {
-    // Add rocks with desert weathering
     const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
     const rockMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x8B7355,  // Desert rock color
+      color: 0x8B7355,
       roughness: 1.0,
       metalness: 0.1,
     });
 
-    for (let i = 0; i < 300; i++) {
+    // Add many more rocks for the vast landscape
+    for (let i = 0; i < 1000; i++) {
       const rock = new THREE.Mesh(rockGeometry, rockMaterial);
       const x = Math.random() * this.mapSize - this.mapSize / 2;
       const z = Math.random() * this.mapSize - this.mapSize / 2;
 
       const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * this.terrainResolution);
       const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * this.terrainResolution);
-      const elevation = terrainData[terrainZ][terrainX].elevation * 4;
+      const elevation = terrainData[terrainZ][terrainX].elevation * 8;
 
-      if (elevation > 1) {
+      if (elevation > 2) {
         rock.position.set(x, elevation + 0.5, z);
         rock.scale.set(
-          0.5 + Math.random() * 2,
-          0.5 + Math.random() * 2,
-          0.5 + Math.random() * 2
+          1 + Math.random() * 3,
+          1 + Math.random() * 3,
+          1 + Math.random() * 3
         );
         rock.rotation.set(
           Math.random() * Math.PI,
@@ -177,33 +179,31 @@ export class Level {
   }
 
   private addTowers(terrainData: TerrainPoint[][]) {
-    // Add communication towers like in the reference image
-    for (let i = 0; i < 4; i++) {
+    // Add military/industrial towers across the landscape
+    for (let i = 0; i < 8; i++) {
       const tower = new THREE.Group();
 
-      // Tower base
-      const baseGeometry = new THREE.BoxGeometry(2, 1, 2);
+      const baseGeometry = new THREE.BoxGeometry(4, 2, 4);
       const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
       const base = new THREE.Mesh(baseGeometry, baseMaterial);
 
-      // Tower structure
-      const poleGeometry = new THREE.CylinderGeometry(0.2, 0.2, 15);
+      const poleGeometry = new THREE.CylinderGeometry(0.3, 0.3, 20);
       const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
       const pole = new THREE.Mesh(poleGeometry, poleMaterial);
-      pole.position.y = 7.5;
+      pole.position.y = 11;
 
       tower.add(base);
       tower.add(pole);
 
-      // Position tower
-      const angle = (Math.PI * 2 * i) / 4;
-      const radius = this.mapSize / 4;
+      // Position towers in a wider circle
+      const angle = (Math.PI * 2 * i) / 8;
+      const radius = this.mapSize / 3;
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
 
       const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * this.terrainResolution);
       const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * this.terrainResolution);
-      const elevation = terrainData[terrainZ][terrainX].elevation * 4;
+      const elevation = terrainData[terrainZ][terrainX].elevation * 8;
 
       tower.position.set(x, elevation, z);
       this.towers.push(tower);

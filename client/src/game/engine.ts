@@ -32,29 +32,41 @@ export class GameEngine {
   constructor(container: HTMLElement) {
     // Scene setup
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    // Add fog to create sense of vast distance
+    this.scene.fog = new THREE.Fog(0xc4a484, 50, 150);
+
+    // Wider field of view and farther draw distance
+    this.camera = new THREE.PerspectiveCamera(
+      85, // Wider FOV
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(this.renderer.domElement);
 
-    // Camera initial position
-    this.camera.position.set(0, 10, 20);
+    // Adjust initial camera position
+    this.camera.position.set(0, 15, 30);
     this.camera.lookAt(0, 0, 0);
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    // Enhanced lighting for vast desert
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(10, 10, 10);
-    this.scene.add(directionalLight);
 
-    // Initialize game objects
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+    sunLight.position.set(100, 100, 0);
+    sunLight.castShadow = true;
+    this.scene.add(sunLight);
+
+    // Rest of the constructor remains unchanged
     this.playerTank = new Tank(this.scene, true);
     this.currentLevel = new Level(this.scene, this.levelNumber);
     this.ui = new UI();
     this.raycaster = new THREE.Raycaster();
 
-    // Event listeners
     window.addEventListener('resize', this.onWindowResize.bind(this));
   }
 
@@ -238,7 +250,6 @@ export class GameEngine {
 
     requestAnimationFrame(this.animate.bind(this));
 
-    // Spawn power-ups periodically
     const currentTime = Date.now();
     if (currentTime - this.lastPowerUpSpawn > this.powerUpSpawnInterval) {
       this.spawnPowerUp();
@@ -253,10 +264,11 @@ export class GameEngine {
     this.checkCollisions();
     this.checkProjectileCollisions();
 
+    // Updated camera follow with higher elevation and distance
     this.camera.position.set(
-      playerPos.x,
-      playerPos.y + 10,
-      playerPos.z + 20
+        playerPos.x,
+        playerPos.y + 20, // Higher elevation
+        playerPos.z + 35  // Further back
     );
     this.camera.lookAt(playerPos);
 
