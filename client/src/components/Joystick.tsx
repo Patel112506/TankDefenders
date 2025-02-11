@@ -17,19 +17,25 @@ export function Joystick({ onMove, onEnd }: JoystickProps) {
       mode: 'static',
       position: { left: '50%', top: '50%' },
       color: 'white',
-      size: 120, // Increased size for better control
-      lockX: false, // Ensure no axis locking
+      size: 150, // Increased size for better control area
+      lockX: false,
       lockY: false,
       dynamicPage: true,
       maxNumberOfNipples: 1,
-      threshold: 0.1 // Lower threshold for more responsive movement
+      threshold: 0.05, // Lower threshold for more sensitive response
+      fadeTime: 50, // Faster fade for more responsive feel
     });
 
     joystick.on('move', (_, data) => {
       if (data.angle && data.force) {
+        // Smoother angle calculation with normalization
+        const normalizedAngle = (data.angle.radian + Math.PI) % (2 * Math.PI);
+        // Smoother force scaling with cubic easing
+        const normalizedForce = Math.pow(Math.min(data.force / 50, 1), 2);
+
         onMove({
-          angle: (data.angle.radian + Math.PI) % (2 * Math.PI),
-          force: Math.min(data.force / 40, 1)
+          angle: normalizedAngle,
+          force: normalizedForce
         });
       }
     });
@@ -44,7 +50,7 @@ export function Joystick({ onMove, onEnd }: JoystickProps) {
   return (
     <div 
       ref={containerRef}
-      className="fixed bottom-20 left-20 w-52 h-52 bg-black/20 rounded-full" 
+      className="fixed bottom-20 left-20 w-60 h-60 bg-black/20 rounded-full backdrop-blur-sm" 
       style={{ touchAction: 'none' }}
     />
   );
