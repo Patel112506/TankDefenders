@@ -2,10 +2,7 @@ import * as THREE from 'three';
 import { Projectile } from './projectile';
 
 export class Tank {
-  private baseSpeed: number;
-  private currentSpeed: number;
-  private maxSpeed: number;
-  private acceleration: number = 0.02;
+  private speed: number;
   private rotationSpeed: number;
   private health = 100;
   private projectiles: Projectile[] = [];
@@ -18,21 +15,13 @@ export class Tank {
   private targetPosition: THREE.Vector3 = new THREE.Vector3();
   private detectionRange = 15;
   private attackRange = 10;
-  private movementKeys: { [key: string]: boolean } = {
-    'w': false,
-    's': false,
-    'a': false,
-    'd': false
-  };
 
   constructor(scene: THREE.Scene, isPlayer: boolean) {
     this.scene = scene;
     this.isPlayer = isPlayer;
     // Different speeds for player and enemies
-    this.baseSpeed = isPlayer ? 0.3 : 0.15;
-    this.currentSpeed = this.baseSpeed;
-    this.maxSpeed = isPlayer ? 0.6 : 0.15; // Player can go faster when accelerating
-    this.rotationSpeed = isPlayer ? 0.08 : 0.04;
+    this.speed = isPlayer ? 1.2 : 0.15; // Increased player speed to 1.2 (4x original speed)
+    this.rotationSpeed = isPlayer ? 0.1 : 0.04; // Slightly increased rotation speed for better control
     this.mesh = new THREE.Group();
 
     // Tank body
@@ -72,49 +61,28 @@ export class Tank {
   handleInput(event: KeyboardEvent) {
     if (!this.isPlayer) return;
 
-    const isKeyDown = event.type === 'keydown';
-
-    switch (event.key) {
-      case 'w':
-      case 's':
-      case 'a':
-      case 'd':
-        this.movementKeys[event.key] = isKeyDown;
-        break;
-      case ' ':
-        this.shoot();
-        break;
+    if (event.type === 'keydown') {
+      switch (event.key) {
+        case 'w':
+          this.moveForward();
+          break;
+        case 's':
+          this.moveBackward();
+          break;
+        case 'a':
+          this.rotate(-this.rotationSpeed);
+          break;
+        case 'd':
+          this.rotate(this.rotationSpeed);
+          break;
+        case ' ':
+          this.shoot();
+          break;
+      }
     }
   }
 
   update(playerPosition?: THREE.Vector3) {
-    // Handle movement with acceleration
-    if (this.isPlayer) {
-      let isMoving = false;
-
-      if (this.movementKeys['w']) {
-        this.moveForward();
-        isMoving = true;
-      }
-      if (this.movementKeys['s']) {
-        this.moveBackward();
-        isMoving = true;
-      }
-      if (this.movementKeys['a']) {
-        this.rotate(-this.rotationSpeed);
-      }
-      if (this.movementKeys['d']) {
-        this.rotate(this.rotationSpeed);
-      }
-
-      // Accelerate if moving, decelerate if not
-      if (isMoving) {
-        this.currentSpeed = Math.min(this.currentSpeed + this.acceleration, this.maxSpeed);
-      } else {
-        this.currentSpeed = Math.max(this.currentSpeed - this.acceleration, this.baseSpeed);
-      }
-    }
-
     // Update projectiles
     this.projectiles = this.projectiles.filter(projectile => {
       projectile.update();
@@ -188,20 +156,20 @@ export class Tank {
   private moveForward() {
     const direction = new THREE.Vector3(0, 0, 1);
     direction.applyQuaternion(this.mesh.quaternion);
-    this.mesh.position.add(direction.multiplyScalar(this.currentSpeed));
+    this.mesh.position.add(direction.multiplyScalar(this.speed));
   }
 
   private moveBackward() {
     const direction = new THREE.Vector3(0, 0, -1);
     direction.applyQuaternion(this.mesh.quaternion);
-    this.mesh.position.add(direction.multiplyScalar(this.currentSpeed));
+    this.mesh.position.add(direction.multiplyScalar(this.speed));
   }
 
   private rotate(angle: number) {
     this.mesh.rotation.y += angle;
   }
 
-  private shoot() {
+  shoot() {
     const currentTime = Date.now();
     if (currentTime - this.lastShootTime < this.shootCooldown) {
       return;
@@ -249,5 +217,6 @@ export class Tank {
       }
     });
   }
+
   private mesh: THREE.Group;
 }
