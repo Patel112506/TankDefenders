@@ -155,25 +155,38 @@ export class Level {
       const x = Math.random() * this.mapSize - this.mapSize / 2;
       const z = Math.random() * this.mapSize - this.mapSize / 2;
 
-      const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * this.terrainResolution);
-      const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * this.terrainResolution);
-      const elevation = terrainData[terrainZ][terrainX].elevation * 8;
+      // Calculate the exact terrain indices
+      const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * (this.terrainResolution - 1));
+      const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * (this.terrainResolution - 1));
 
-      if (elevation > 2) {
-        rock.position.set(x, elevation + 0.5, z);
-        rock.scale.set(
-          1 + Math.random() * 3,
-          1 + Math.random() * 3,
-          1 + Math.random() * 3
-        );
-        rock.rotation.set(
-          Math.random() * Math.PI,
-          Math.random() * Math.PI,
-          Math.random() * Math.PI
-        );
+      // Make sure we don't exceed array bounds
+      if (terrainX >= 0 && terrainX < this.terrainResolution && 
+          terrainZ >= 0 && terrainZ < this.terrainResolution) {
+        const terrainPoint = terrainData[terrainZ][terrainX];
+        const elevation = terrainPoint.elevation * 8; // Match terrain amplification
 
-        this.decorations.push(rock);
-        this.scene.add(rock);
+        // Only place rocks on the actual terrain surface
+        if (terrainPoint.type === 'rock' || terrainPoint.type === 'mountain') {
+          rock.position.set(x, elevation, z);
+
+          // Vary rock size based on terrain type
+          const baseScale = terrainPoint.type === 'mountain' ? 2 : 1;
+          const randomScale = Math.random() * baseScale;
+          rock.scale.set(
+            0.5 + randomScale,
+            0.5 + randomScale,
+            0.5 + randomScale
+          );
+
+          rock.rotation.set(
+            Math.random() * Math.PI,
+            Math.random() * Math.PI,
+            Math.random() * Math.PI
+          );
+
+          this.decorations.push(rock);
+          this.scene.add(rock);
+        }
       }
     }
   }
