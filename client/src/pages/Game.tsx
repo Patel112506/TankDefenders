@@ -37,6 +37,7 @@ export default function Game() {
     });
 
     gameRef.current.init();
+    setHealth(500); // Set initial health to 500
 
     // Add keyboard listener for spacebar shooting
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -58,7 +59,7 @@ export default function Game() {
     setShowLevelComplete(false);
     setScore(0);
     setLevel(1);
-    setHealth(100);
+    setHealth(500); // Reset health to 500
     gameRef.current?.restart();
   };
 

@@ -5,7 +5,7 @@ export class Projectile {
   private velocity: THREE.Vector3;
   private speed = 0.4; 
   private lifetime = 100;
-  private damage = 100; // Set damage to 100 per hit
+  private damage: number;
   private isPlayerProjectile: boolean;
   private scene: THREE.Scene;
 
@@ -28,6 +28,8 @@ export class Projectile {
     );
 
     this.isPlayerProjectile = isPlayerProjectile;
+    // Set different damage values for player and enemy projectiles
+    this.damage = isPlayerProjectile ? 120 : 80;
     scene.add(this.mesh);
   }
 
