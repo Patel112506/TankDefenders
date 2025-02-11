@@ -27,7 +27,7 @@ export function Joystick({ onMove, onEnd }: JoystickProps) {
       if (data.angle && data.force) {
         onMove({
           angle: (data.angle.radian + Math.PI) % (2 * Math.PI),
-          force: Math.min(data.force / 50, 1), // Reduced force for more precise control
+          force: Math.min(data.force / 40, 1), // Balanced force for better control with new speed
         });
       }
     });
