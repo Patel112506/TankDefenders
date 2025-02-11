@@ -1,9 +1,19 @@
 import * as THREE from 'three';
+import { createNoise2D } from 'simplex-noise';
+
+interface TerrainPoint {
+  elevation: number;
+  type: 'grass' | 'dirt' | 'sand';
+}
 
 export class Level {
   private scene: THREE.Scene;
   private levelNumber: number;
   private obstacles: THREE.Mesh[] = [];
+  private mapSize = 100; // Increased map size
+  private terrainResolution = 100;
+  private terrain!: THREE.Mesh;
+  private decorations: THREE.Mesh[] = [];
 
   constructor(scene: THREE.Scene, levelNumber: number) {
     this.scene = scene;
@@ -11,33 +21,136 @@ export class Level {
   }
 
   load() {
-    // Create ground
-    const groundGeometry = new THREE.PlaneGeometry(50, 50);
+    // Generate terrain data
+    const terrainData = this.generateTerrainData();
+
+    // Create ground with elevation
+    const groundGeometry = new THREE.PlaneGeometry(
+      this.mapSize,
+      this.mapSize,
+      this.terrainResolution - 1,
+      this.terrainResolution - 1
+    );
+
+    // Apply elevation to vertices
+    const positions = groundGeometry.attributes.position.array;
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = Math.floor((i / 3) % this.terrainResolution);
+      const z = Math.floor((i / 3) / this.terrainResolution);
+      positions[i + 1] = terrainData[z][x].elevation;
+    }
+    groundGeometry.computeVertexNormals();
+
+    // Create blended terrain texture
+    const textureLoader = new THREE.TextureLoader();
+    const grassTexture = textureLoader.load('/textures/grass.jpg');
+    const dirtTexture = textureLoader.load('/textures/dirt.jpg');
+    const sandTexture = textureLoader.load('/textures/sand.jpg');
+
+    grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping;
+    dirtTexture.wrapS = dirtTexture.wrapT = THREE.RepeatWrapping;
+    sandTexture.wrapS = sandTexture.wrapT = THREE.RepeatWrapping;
+
+    grassTexture.repeat.set(20, 20);
+    dirtTexture.repeat.set(20, 20);
+    sandTexture.repeat.set(20, 20);
+
     const groundMaterial = new THREE.MeshStandardMaterial({
-      color: 0x007700,
-      side: THREE.DoubleSide
+      map: grassTexture,
+      roughness: 0.8,
+      metalness: 0.1,
     });
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    this.scene.add(ground);
+
+    this.terrain = new THREE.Mesh(groundGeometry, groundMaterial);
+    this.terrain.rotation.x = -Math.PI / 2;
+    this.terrain.receiveShadow = true;
+    this.scene.add(this.terrain);
+
+    // Add decorative elements
+    this.addDecorations(terrainData);
 
     // Add obstacles based on level number
     this.createObstacles();
   }
 
+  private generateTerrainData(): TerrainPoint[][] {
+    const terrain: TerrainPoint[][] = [];
+    const noise2D = createNoise2D();
+
+    for (let z = 0; z < this.terrainResolution; z++) {
+      terrain[z] = [];
+      for (let x = 0; x < this.terrainResolution; x++) {
+        const nx = x / this.terrainResolution - 0.5;
+        const nz = z / this.terrainResolution - 0.5;
+
+        // Generate elevation using multiple octaves of noise
+        let elevation = 0;
+        elevation += noise2D(nx * 2, nz * 2) * 2;
+        elevation += noise2D(nx * 4, nz * 4) * 1;
+        elevation += noise2D(nx * 8, nz * 8) * 0.5;
+
+        // Determine terrain type based on elevation and moisture
+        let type: 'grass' | 'dirt' | 'sand';
+        if (elevation > 1) {
+          type = 'dirt';
+        } else if (elevation > 0) {
+          type = 'grass';
+        } else {
+          type = 'sand';
+        }
+
+        terrain[z][x] = { elevation, type };
+      }
+    }
+
+    return terrain;
+  }
+
+  private addDecorations(terrainData: TerrainPoint[][]) {
+    // Add rocks
+    const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
+    const rockMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+
+    for (let i = 0; i < 50; i++) {
+      const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+      const x = Math.random() * this.mapSize - this.mapSize / 2;
+      const z = Math.random() * this.mapSize - this.mapSize / 2;
+
+      // Find the elevation at this point
+      const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * this.terrainResolution);
+      const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * this.terrainResolution);
+      const elevation = terrainData[terrainZ][terrainX].elevation;
+
+      rock.position.set(x, elevation + 0.5, z);
+      rock.scale.set(
+        0.5 + Math.random() * 1.5,
+        0.5 + Math.random() * 1.5,
+        0.5 + Math.random() * 1.5
+      );
+      rock.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+
+      this.decorations.push(rock);
+      this.scene.add(rock);
+    }
+  }
+
   private createObstacles() {
-    const obstacleCount = 5 + this.levelNumber * 2; // More obstacles in higher levels
+    const obstacleCount = 5 + this.levelNumber * 2;
 
     for (let i = 0; i < obstacleCount; i++) {
       const geometry = new THREE.BoxGeometry(2, 2, 2);
       const material = new THREE.MeshPhongMaterial({ color: 0x808080 });
       const obstacle = new THREE.Mesh(geometry, material);
 
-      // Random position
+      // Random position within the larger map
       obstacle.position.set(
-        Math.random() * 40 - 20,
+        Math.random() * (this.mapSize - 10) - (this.mapSize / 2 - 5),
         1,
-        Math.random() * 40 - 20
+        Math.random() * (this.mapSize - 10) - (this.mapSize / 2 - 5)
       );
 
       this.obstacles.push(obstacle);
@@ -57,12 +170,29 @@ export class Level {
     }
   }
 
+  getMapSize() {
+    return this.mapSize;
+  }
+
   dispose() {
+    if (this.terrain) {
+      this.scene.remove(this.terrain);
+      this.terrain.geometry.dispose();
+      (this.terrain.material as THREE.Material).dispose();
+    }
+
     // Clean up obstacles
     this.obstacles.forEach(obstacle => {
       this.scene.remove(obstacle);
       obstacle.geometry.dispose();
       (obstacle.material as THREE.Material).dispose();
+    });
+
+    // Clean up decorations
+    this.decorations.forEach(decoration => {
+      this.scene.remove(decoration);
+      decoration.geometry.dispose();
+      (decoration.material as THREE.Material).dispose();
     });
   }
 }

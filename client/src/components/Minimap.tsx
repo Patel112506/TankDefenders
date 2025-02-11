@@ -17,21 +17,17 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    // Clear canvas with a semi-transparent dark background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw border
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-    // Draw battlefield/ground (green field)
-    ctx.fillStyle = 'rgba(0, 119, 0, 0.3)'; // Semi-transparent green
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Grid lines for better orientation
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    const gridSize = 10;
+    // Draw terrain grid with improved visuals
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    const gridSize = 20;
     const gridStep = canvas.width / gridSize;
 
     for (let i = 1; i < gridSize; i++) {
@@ -51,22 +47,81 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
     // Scale factor to convert world coordinates to minimap coordinates
     const scale = canvas.width / mapSize;
 
-    // Draw player (green dot with outline)
+    // Draw cardinal directions
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('N', canvas.width / 2, 15);
+    ctx.fillText('S', canvas.width / 2, canvas.height - 5);
+    ctx.fillText('W', 10, canvas.height / 2);
+    ctx.fillText('E', canvas.width - 10, canvas.height / 2);
+
+    // Draw player (green dot with pulse effect)
+    const pulseSize = 6 + Math.sin(Date.now() * 0.01) * 2;
+
+    // Pulse glow
+    const gradient = ctx.createRadialGradient(
+      (playerPosition.x + mapSize / 2) * scale,
+      (playerPosition.z + mapSize / 2) * scale,
+      0,
+      (playerPosition.x + mapSize / 2) * scale,
+      (playerPosition.z + mapSize / 2) * scale,
+      pulseSize * 2
+    );
+    gradient.addColorStop(0, 'rgba(0, 255, 0, 0.5)');
+    gradient.addColorStop(1, 'rgba(0, 255, 0, 0)');
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(
+      (playerPosition.x + mapSize / 2) * scale,
+      (playerPosition.z + mapSize / 2) * scale,
+      pulseSize * 2,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    // Player dot
     ctx.fillStyle = '#00ff00';
     ctx.strokeStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(
       (playerPosition.x + mapSize / 2) * scale,
       (playerPosition.z + mapSize / 2) * scale,
-      6,
+      pulseSize,
       0,
       Math.PI * 2
     );
     ctx.fill();
     ctx.stroke();
 
-    // Draw enemies (red dots with outline)
+    // Draw enemies (red dots with threat indicator)
     enemyPositions.forEach(pos => {
+      // Threat radius indicator
+      const threatGradient = ctx.createRadialGradient(
+        (pos.x + mapSize / 2) * scale,
+        (pos.z + mapSize / 2) * scale,
+        0,
+        (pos.x + mapSize / 2) * scale,
+        (pos.z + mapSize / 2) * scale,
+        10
+      );
+      threatGradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
+      threatGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+
+      ctx.fillStyle = threatGradient;
+      ctx.beginPath();
+      ctx.arc(
+        (pos.x + mapSize / 2) * scale,
+        (pos.z + mapSize / 2) * scale,
+        10,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+
+      // Enemy dot
       ctx.fillStyle = '#ff0000';
       ctx.strokeStyle = '#ffffff';
       ctx.beginPath();
@@ -85,9 +140,10 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
   return (
     <canvas
       ref={canvasRef}
-      width={150}
-      height={150}
-      className="border border-white/20 rounded-lg"
+      width={200}
+      height={200}
+      className="border border-white/20 rounded-lg shadow-lg"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
     />
   );
 }
