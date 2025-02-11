@@ -94,7 +94,7 @@ export class Tank {
       ).normalize();
 
       // Apply movement with responsive acceleration
-      const moveSpeed = this.speed * force;
+      const moveSpeed = this.speed * force * (1 + force); // Non-linear speed scaling
       this.mesh.position.add(moveDirection.multiplyScalar(moveSpeed));
     }
 
