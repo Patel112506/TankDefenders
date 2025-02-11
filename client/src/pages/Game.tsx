@@ -3,7 +3,6 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { GameEngine } from '../game/engine';
-import { Joystick } from '@/components/Joystick';
 import * as THREE from 'three';
 import {
   Dialog,
@@ -41,16 +40,7 @@ export default function Game() {
     });
 
     gameRef.current.init();
-    setHealth(500); // Set initial health to 500
-
-    // Add keyboard listener for spacebar shooting
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === ' ' && gameRef.current) {
-        gameRef.current.getPlayerTank()?.shoot();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
+    setHealth(500);
 
     const updatePositions = () => {
       if (gameRef.current) {
@@ -62,10 +52,8 @@ export default function Game() {
 
     updatePositions();
 
-
     return () => {
       gameRef.current?.dispose();
-      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -74,7 +62,7 @@ export default function Game() {
     setShowLevelComplete(false);
     setScore(0);
     setLevel(1);
-    setHealth(500); // Reset health to 500
+    setHealth(500);
     gameRef.current?.restart();
   };
 
@@ -83,29 +71,10 @@ export default function Game() {
     gameRef.current?.startNextLevel();
   };
 
-  const handleJoystickMove = (data: { angle: number; force: number }) => {
-    gameRef.current?.getPlayerTank()?.handleJoystickInput(data);
-  };
-
-  const handleJoystickEnd = () => {
-    gameRef.current?.getPlayerTank()?.handleJoystickInput(null);
-  };
-
   return (
     <div className="relative w-full h-screen">
       {/* Game Canvas Container */}
       <div ref={containerRef} className="w-full h-full" />
-
-      {/* Joystick */}
-      <Joystick onMove={handleJoystickMove} onEnd={handleJoystickEnd} />
-
-      {/* Shoot Button (for mobile) */}
-      <button
-        className="fixed bottom-20 right-20 w-16 h-16 bg-red-500/50 rounded-full flex items-center justify-center text-white text-sm font-bold"
-        onTouchStart={() => gameRef.current?.getPlayerTank()?.shoot()}
-      >
-        FIRE
-      </button>
 
       {/* HUD Overlay */}
       <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">

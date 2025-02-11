@@ -15,16 +15,15 @@ export class Tank {
   private targetPosition: THREE.Vector3 = new THREE.Vector3();
   private detectionRange = 15;
   private attackRange = 10;
-  private joystickMovement: { angle: number; force: number } | null = null;
+  private keys: { [key: string]: boolean } = {};
 
   constructor(scene: THREE.Scene, isPlayer: boolean) {
     this.scene = scene;
     this.isPlayer = isPlayer;
     // Different speeds for player and enemies
-    this.speed = isPlayer ? 22 : 0.15; // Increased base speed for player slightly
-    this.rotationSpeed = isPlayer ? 0.3 : 0.04; // Slightly increased rotation for better responsiveness
-    // Different health values for player and enemies
-    this.health = isPlayer ? 500 : 300; // Player: 500 HP, Enemies: 300 HP
+    this.speed = isPlayer ? 0.4 : 0.15; // Adjusted for arrow key movement
+    this.rotationSpeed = isPlayer ? 0.3 : 0.04;
+    this.health = isPlayer ? 500 : 300;
     this.mesh = new THREE.Group();
 
     // Tank body
@@ -56,46 +55,58 @@ export class Tank {
 
     scene.add(this.mesh);
 
-    if (!isPlayer) {
+    if (isPlayer) {
+      // Set up keyboard controls for player
+      window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+      window.addEventListener('keyup', (e) => this.handleKeyUp(e));
+      window.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+    } else {
       this.setNewPatrolPoint();
     }
   }
 
-  handleJoystickInput(data: { angle: number; force: number } | null) {
-    if (this.isPlayer) {
-      this.joystickMovement = data;
-    }
-  }
-
-  handleInput(event: KeyboardEvent) {
+  private handleKeyDown(event: KeyboardEvent) {
     if (!this.isPlayer) return;
+    this.keys[event.key] = true;
 
     if (event.key === ' ') {
       this.shoot();
     }
   }
 
+  private handleKeyUp(event: KeyboardEvent) {
+    if (!this.isPlayer) return;
+    this.keys[event.key] = false;
+  }
+
+  private handleMouseMove(event: MouseEvent) {
+    if (!this.isPlayer) return;
+
+    // Calculate rotation based on mouse position relative to center of screen
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const angleToMouse = Math.atan2(event.clientX - centerX, centerY - event.clientY);
+    this.mesh.rotation.y = angleToMouse;
+  }
+
   update(playerPosition?: THREE.Vector3) {
-    // Handle joystick movement for player
-    if (this.isPlayer && this.joystickMovement) {
-      const { angle, force } = this.joystickMovement;
-
-      // Set tank rotation smoothly with faster response
-      const targetRotation = angle;
-      const currentRotation = this.mesh.rotation.y;
-      const rotationDiff = (targetRotation - currentRotation + Math.PI) % (Math.PI * 2) - Math.PI;
-      this.mesh.rotation.y += rotationDiff * 0.2; // Adjusted interpolation for smoother turning
-
-      // Calculate movement direction
-      const moveDirection = new THREE.Vector3(
-        Math.sin(angle),
-        0,
-        Math.cos(angle)
-      ).normalize();
-
-      // Apply movement with responsive acceleration
-      const moveSpeed = this.speed * force * (1 + 0.5 * force); // Fine-tuned acceleration curve
-      this.mesh.position.add(moveDirection.multiplyScalar(moveSpeed));
+    if (this.isPlayer) {
+      // Handle keyboard movement
+      const moveSpeed = this.speed;
+      if (this.keys['ArrowUp'] || this.keys['w']) {
+        this.mesh.position.z -= moveSpeed;
+      }
+      if (this.keys['ArrowDown'] || this.keys['s']) {
+        this.mesh.position.z += moveSpeed;
+      }
+      if (this.keys['ArrowLeft'] || this.keys['a']) {
+        this.mesh.position.x -= moveSpeed;
+      }
+      if (this.keys['ArrowRight'] || this.keys['d']) {
+        this.mesh.position.x += moveSpeed;
+      }
+    } else if (playerPosition) {
+      this.updateAI(playerPosition);
     }
 
     // Update projectiles
@@ -107,11 +118,6 @@ export class Tank {
       }
       return true;
     });
-
-    // AI behavior for enemy tanks
-    if (!this.isPlayer && playerPosition) {
-      this.updateAI(playerPosition);
-    }
   }
 
   private updateAI(playerPosition: THREE.Vector3) {
@@ -206,8 +212,8 @@ export class Tank {
   }
 
   takeDamage(amount: number) {
-    this.health -= amount; // Changed to deduct the actual amount of damage
-    if (this.health < 0) this.health = 0; //Health cannot go below 0
+    this.health -= amount; 
+    if (this.health < 0) this.health = 0; 
     return this.health <= 0;
   }
 
@@ -228,6 +234,11 @@ export class Tank {
   }
 
   dispose() {
+    if (this.isPlayer) {
+      window.removeEventListener('keydown', this.handleKeyDown);
+      window.removeEventListener('keyup', this.handleKeyUp);
+      window.removeEventListener('mousemove', this.handleMouseMove);
+    }
     this.projectiles.forEach(projectile => projectile.dispose());
     this.scene.remove(this.mesh);
     this.mesh.traverse((child) => {
