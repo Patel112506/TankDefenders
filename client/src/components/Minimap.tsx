@@ -25,33 +25,60 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
     ctx.strokeStyle = 'white';
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
+    // Draw battlefield/ground (green field)
+    ctx.fillStyle = 'rgba(0, 119, 0, 0.3)'; // Semi-transparent green
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Grid lines for better orientation
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    const gridSize = 10;
+    const gridStep = canvas.width / gridSize;
+
+    for (let i = 1; i < gridSize; i++) {
+      // Vertical lines
+      ctx.beginPath();
+      ctx.moveTo(i * gridStep, 0);
+      ctx.lineTo(i * gridStep, canvas.height);
+      ctx.stroke();
+
+      // Horizontal lines
+      ctx.beginPath();
+      ctx.moveTo(0, i * gridStep);
+      ctx.lineTo(canvas.width, i * gridStep);
+      ctx.stroke();
+    }
+
     // Scale factor to convert world coordinates to minimap coordinates
     const scale = canvas.width / mapSize;
 
-    // Draw player (green dot)
+    // Draw player (green dot with outline)
     ctx.fillStyle = '#00ff00';
+    ctx.strokeStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(
       (playerPosition.x + mapSize / 2) * scale,
       (playerPosition.z + mapSize / 2) * scale,
-      4,
+      6,
       0,
       Math.PI * 2
     );
     ctx.fill();
+    ctx.stroke();
 
-    // Draw enemies (red dots)
-    ctx.fillStyle = '#ff0000';
+    // Draw enemies (red dots with outline)
     enemyPositions.forEach(pos => {
+      ctx.fillStyle = '#ff0000';
+      ctx.strokeStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(
         (pos.x + mapSize / 2) * scale,
         (pos.z + mapSize / 2) * scale,
-        3,
+        4,
         0,
         Math.PI * 2
       );
       ctx.fill();
+      ctx.stroke();
     });
   }, [playerPosition, enemyPositions, mapSize]);
 
