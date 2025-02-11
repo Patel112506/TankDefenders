@@ -27,9 +27,11 @@ export function Joystick({ onMove, onEnd }: JoystickProps) {
 
     joystick.on('move', (_, data) => {
       if (data.angle && data.force) {
+        // Improved force calculation for smoother control
+        const normalizedForce = Math.pow(Math.min(data.force / 50, 1), 1.5);
         onMove({
           angle: data.angle.radian,
-          force: Math.min(data.force / 50, 1)
+          force: normalizedForce
         });
       }
     });

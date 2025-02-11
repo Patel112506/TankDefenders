@@ -70,7 +70,7 @@ export class Tank {
   handleInput(event: KeyboardEvent) {
     if (!this.isPlayer) return;
 
-    if (event.type === 'keydown' && event.key === ' ') {
+    if (event.key === ' ') {
       this.shoot();
     }
   }
@@ -80,11 +80,11 @@ export class Tank {
     if (this.isPlayer && this.joystickMovement) {
       const { angle, force } = this.joystickMovement;
 
-      // Set tank rotation smoothly
+      // Set tank rotation smoothly with faster response
       const targetRotation = angle;
       const currentRotation = this.mesh.rotation.y;
       const rotationDiff = (targetRotation - currentRotation + Math.PI) % (Math.PI * 2) - Math.PI;
-      this.mesh.rotation.y += rotationDiff * 0.2;
+      this.mesh.rotation.y += rotationDiff * 0.3;
 
       // Calculate movement direction
       const moveDirection = new THREE.Vector3(
@@ -93,7 +93,7 @@ export class Tank {
         Math.cos(angle)
       ).normalize();
 
-      // Apply movement with smooth acceleration
+      // Apply movement with responsive acceleration
       const moveSpeed = this.speed * force;
       this.mesh.position.add(moveDirection.multiplyScalar(moveSpeed));
     }
