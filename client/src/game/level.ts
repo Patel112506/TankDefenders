@@ -46,8 +46,15 @@ export class Level {
   }
 
   getEnemyCount() {
-    // Increase number of enemies with level, max 8
-    return Math.min(2 + this.levelNumber, 8);
+    // Progressive enemy count based on level
+    switch (this.levelNumber) {
+      case 1:
+        return 2; // Starting with 2 enemies
+      case 2:
+        return 3; // Increasing to 3 enemies
+      default:
+        return 4; // Levels 3-5 have 4 enemies
+    }
   }
 
   dispose() {

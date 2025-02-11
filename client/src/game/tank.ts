@@ -165,18 +165,28 @@ export class Tank {
       switch (level) {
         case 1:
           this.shootCooldown = 2000; // 2 seconds between shots
+          this.baseProjectileDamage = 80; // Lower damage at start
+          this.health = 200; // Lower health at start
           break;
         case 2:
           this.shootCooldown = 1500; // 1.5 seconds
+          this.baseProjectileDamage = 90;
+          this.health = 250;
           break;
         case 3:
           this.shootCooldown = 1000; // 1 second
+          this.baseProjectileDamage = 100;
+          this.health = 300;
           break;
         case 4:
           this.shootCooldown = 800; // 0.8 seconds
+          this.baseProjectileDamage = 110;
+          this.health = 300;
           break;
         case 5:
           this.shootCooldown = 600; // 0.6 seconds
+          this.baseProjectileDamage = 120; // Maximum damage
+          this.health = 400; // Stronger in final level
           break;
       }
     }
