@@ -21,7 +21,7 @@ export class Tank {
     this.scene = scene;
     this.isPlayer = isPlayer;
     // Different speeds for player and enemies
-    this.speed = isPlayer ? 1.92 : 0.15; // Increased player speed by 60% (from 1.2 to 1.92)
+    this.speed = isPlayer ? 5 : 0.15; // Increased player speed significantly
     this.rotationSpeed = isPlayer ? 0.1 : 0.04;
     // Different health values for player and enemies
     this.health = isPlayer ? 500 : 300; // Player: 500 HP, Enemies: 300 HP
@@ -197,7 +197,8 @@ export class Tank {
   }
 
   takeDamage(amount: number) {
-    this.health -= 100; // Fixed damage of 100
+    this.health -= amount; // Changed to deduct the actual amount of damage
+    if (this.health < 0) this.health = 0; //Health cannot go below 0
     return this.health <= 0;
   }
 
