@@ -10,11 +10,11 @@ export class Level {
   private scene: THREE.Scene;
   private levelNumber: number;
   private obstacles: THREE.Mesh[] = [];
-  private mapSize = 2000; // Vastly increased map size
-  private terrainResolution = 1000; // Increased resolution for better detail
+  private mapSize = 2000; // Vast desert area
+  private terrainResolution = 1000;
   private terrain!: THREE.Mesh;
-  private decorations: THREE.Mesh[] = [];
   private towers: THREE.Group[] = [];
+  private stars: THREE.Points[] = [];
 
   constructor(scene: THREE.Scene, levelNumber: number) {
     this.scene = scene;
@@ -22,6 +22,9 @@ export class Level {
   }
 
   load() {
+    // Create starfield
+    this.createStars();
+
     // Generate terrain data
     const terrainData = this.generateTerrainData();
 
@@ -38,25 +41,25 @@ export class Level {
     for (let i = 0; i < positions.length; i += 3) {
       const x = Math.floor((i / 3) % this.terrainResolution);
       const z = Math.floor((i / 3) / this.terrainResolution);
-      positions[i + 1] = terrainData[z][x].elevation * 8; // More dramatic elevation changes
+      positions[i + 1] = terrainData[z][x].elevation * 8;
     }
     groundGeometry.computeVertexNormals();
 
+    // Create material optimized for night viewing
     const groundMaterial = new THREE.MeshStandardMaterial({
       vertexColors: true,
       roughness: 0.9,
       metalness: 0.1,
+      emissive: new THREE.Color(0x222244), // Slight blue glow for moonlight
+      emissiveIntensity: 0.1
     });
 
-    // Apply vertex colors based on height and slope
+    // Apply vertex colors with nighttime palette
     const colors = new Float32Array(positions.length);
     const normal = new THREE.Vector3();
 
     for (let i = 0; i < positions.length; i += 3) {
       const height = positions[i + 1];
-      const x = Math.floor((i / 3) % this.terrainResolution);
-      const z = Math.floor((i / 3) / this.terrainResolution);
-
       normal.set(
         positions[i],
         positions[i + 1],
@@ -64,20 +67,20 @@ export class Level {
       ).normalize();
       const slope = 1 - normal.dot(new THREE.Vector3(0, 1, 0));
 
-      // Desert color palette
+      // Nighttime desert color palette
       let color = new THREE.Color();
       if (height > 6) {
-        // Rocky mountains
-        color.setRGB(0.55, 0.5, 0.45);
+        // Dark mountains
+        color.setRGB(0.15, 0.15, 0.2);
       } else if (slope > 0.5) {
-        // Steep rocky slopes
-        color.setRGB(0.6, 0.55, 0.5);
+        // Steep slopes
+        color.setRGB(0.1, 0.1, 0.15);
       } else if (height > 2) {
-        // Light sand dunes
-        color.setRGB(0.95, 0.9, 0.7);
+        // Dunes catching moonlight
+        color.setRGB(0.25, 0.25, 0.35);
       } else {
         // Dark sand valleys
-        color.setRGB(0.85, 0.8, 0.6);
+        color.setRGB(0.2, 0.2, 0.3);
       }
 
       colors[i] = color.r;
@@ -92,9 +95,45 @@ export class Level {
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
 
-    // Add decorative elements
-    this.addDecorations(terrainData);
+    // Add military installations
     this.addTowers(terrainData);
+  }
+
+  private createStars() {
+    // Create multiple layers of stars for depth
+    const createStarLayer = (count: number, size: number, distance: number) => {
+      const geometry = new THREE.BufferGeometry();
+      const vertices = [];
+
+      for (let i = 0; i < count; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(Math.random() * 2 - 1);
+        const x = distance * Math.sin(phi) * Math.cos(theta);
+        const y = distance * Math.sin(phi) * Math.sin(theta);
+        const z = distance * Math.cos(phi);
+
+        vertices.push(x, y, z);
+      }
+
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+      const material = new THREE.PointsMaterial({
+        size,
+        color: 0xffffff,
+        transparent: true,
+        opacity: Math.random() * 0.5 + 0.5,
+        sizeAttenuation: false
+      });
+
+      const stars = new THREE.Points(geometry, material);
+      this.scene.add(stars);
+      this.stars.push(stars);
+    };
+
+    // Create multiple star layers
+    createStarLayer(1000, 1.5, 800); // Bright, close stars
+    createStarLayer(2000, 1, 900);   // Medium stars
+    createStarLayer(3000, 0.5, 1000); // Distant stars
   }
 
   private generateTerrainData(): TerrainPoint[][] {
@@ -141,72 +180,41 @@ export class Level {
     return terrain;
   }
 
-  private addDecorations(terrainData: TerrainPoint[][]) {
-    const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
-    const rockMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x8B7355,
-      roughness: 1.0,
-      metalness: 0.1,
-    });
-
-    // Add many more rocks for the vast landscape
-    for (let i = 0; i < 1000; i++) {
-      const rock = new THREE.Mesh(rockGeometry, rockMaterial);
-      const x = Math.random() * this.mapSize - this.mapSize / 2;
-      const z = Math.random() * this.mapSize - this.mapSize / 2;
-
-      // Calculate the exact terrain indices
-      const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * (this.terrainResolution - 1));
-      const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * (this.terrainResolution - 1));
-
-      // Make sure we don't exceed array bounds
-      if (terrainX >= 0 && terrainX < this.terrainResolution && 
-          terrainZ >= 0 && terrainZ < this.terrainResolution) {
-        const terrainPoint = terrainData[terrainZ][terrainX];
-        const elevation = terrainPoint.elevation * 8; // Match terrain amplification
-
-        // Only place rocks on the actual terrain surface
-        if (terrainPoint.type === 'rock' || terrainPoint.type === 'mountain') {
-          rock.position.set(x, elevation, z);
-
-          // Vary rock size based on terrain type
-          const baseScale = terrainPoint.type === 'mountain' ? 2 : 1;
-          const randomScale = Math.random() * baseScale;
-          rock.scale.set(
-            0.5 + randomScale,
-            0.5 + randomScale,
-            0.5 + randomScale
-          );
-
-          rock.rotation.set(
-            Math.random() * Math.PI,
-            Math.random() * Math.PI,
-            Math.random() * Math.PI
-          );
-
-          this.decorations.push(rock);
-          this.scene.add(rock);
-        }
-      }
-    }
-  }
-
   private addTowers(terrainData: TerrainPoint[][]) {
     // Add military/industrial towers across the landscape
     for (let i = 0; i < 8; i++) {
       const tower = new THREE.Group();
 
       const baseGeometry = new THREE.BoxGeometry(4, 2, 4);
-      const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
+      const baseMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x333333,
+        emissive: 0x222222,
+        emissiveIntensity: 0.2
+      });
       const base = new THREE.Mesh(baseGeometry, baseMaterial);
 
       const poleGeometry = new THREE.CylinderGeometry(0.3, 0.3, 20);
-      const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+      const poleMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x444444,
+        emissive: 0x222222,
+        emissiveIntensity: 0.2
+      });
       const pole = new THREE.Mesh(poleGeometry, poleMaterial);
       pole.position.y = 11;
 
+      // Add a small blinking light at the top
+      const lightGeometry = new THREE.SphereGeometry(0.3);
+      const lightMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xff0000,
+        emissive: 0xff0000,
+        emissiveIntensity: 1
+      });
+      const light = new THREE.Mesh(lightGeometry, lightMaterial);
+      light.position.y = 22;
+
       tower.add(base);
       tower.add(pole);
+      tower.add(light);
 
       // Position towers in a wider circle
       const angle = (Math.PI * 2 * i) / 8;
@@ -239,16 +247,10 @@ export class Level {
       (this.terrain.material as THREE.Material).dispose();
     }
 
-    this.obstacles.forEach(obstacle => {
-      this.scene.remove(obstacle);
-      obstacle.geometry.dispose();
-      (obstacle.material as THREE.Material).dispose();
-    });
-
-    this.decorations.forEach(decoration => {
-      this.scene.remove(decoration);
-      decoration.geometry.dispose();
-      (decoration.material as THREE.Material).dispose();
+    this.stars.forEach(stars => {
+      this.scene.remove(stars);
+      stars.geometry.dispose();
+      (stars.material as THREE.Material).dispose();
     });
 
     this.towers.forEach(tower => {

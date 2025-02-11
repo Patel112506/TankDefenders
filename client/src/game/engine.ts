@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Tank } from './tank';
 import { Level } from './level';
-import { PowerUp, PowerUpType } from './powerup'; // Assuming PowerUpType exists here
+import { PowerUp, PowerUpType } from './powerup';
 import { UI } from './ui';
 
 interface UICallbacks {
@@ -28,40 +28,53 @@ export class GameEngine {
   private uiCallbacks?: UICallbacks;
   private powerUpSpawnInterval = 15000; // Spawn power-up every 15 seconds
   private lastPowerUpSpawn = 0;
+  private moonLight: THREE.DirectionalLight;
 
   constructor(container: HTMLElement) {
-    // Scene setup
+    // Scene setup with dark sky
     this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x000010); // Very dark blue
 
-    // Add fog to create sense of vast distance
-    this.scene.fog = new THREE.Fog(0xc4a484, 50, 150);
+    // Add fog for night atmosphere
+    this.scene.fog = new THREE.Fog(0x000010, 50, 200);
 
-    // Wider field of view and farther draw distance
+    // Camera setup with wider FOV for better night vision
     this.camera = new THREE.PerspectiveCamera(
-      85, // Wider FOV
+      85,
       window.innerWidth / window.innerHeight,
       0.1,
       1000
     );
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Enhanced renderer with better shadows
+    this.renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      logarithmicDepthBuffer: true 
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
 
-    // Adjust initial camera position
+    // Initial camera position
     this.camera.position.set(0, 15, 30);
     this.camera.lookAt(0, 0, 0);
 
-    // Enhanced lighting for vast desert
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Nighttime lighting setup
+    const ambientLight = new THREE.AmbientLight(0x111122, 0.3); // Dim blue ambient light
     this.scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xffffff, 1);
-    sunLight.position.set(100, 100, 0);
-    sunLight.castShadow = true;
-    this.scene.add(sunLight);
+    // Moon light
+    this.moonLight = new THREE.DirectionalLight(0x6666ff, 0.8);
+    this.moonLight.position.set(100, 100, 50);
+    this.moonLight.castShadow = true;
+    this.scene.add(this.moonLight);
 
-    // Rest of the constructor remains unchanged
+    // Add subtle hemisphere light for better terrain visibility
+    const hemisphereLight = new THREE.HemisphereLight(0x000066, 0x000000, 0.3);
+    this.scene.add(hemisphereLight);
+
+    // Initialize game objects
     this.playerTank = new Tank(this.scene, true);
     this.currentLevel = new Level(this.scene, this.levelNumber);
     this.ui = new UI();
@@ -256,6 +269,11 @@ export class GameEngine {
       this.lastPowerUpSpawn = currentTime;
     }
 
+    // Update moon position for dynamic shadows
+    const time = currentTime * 0.0001;
+    this.moonLight.position.x = Math.cos(time) * 100;
+    this.moonLight.position.z = Math.sin(time) * 100;
+
     const playerPos = this.playerTank.getPosition();
     this.playerTank.update();
     this.enemies.forEach(enemy => enemy.update(playerPos));
@@ -264,11 +282,11 @@ export class GameEngine {
     this.checkCollisions();
     this.checkProjectileCollisions();
 
-    // Updated camera follow with higher elevation and distance
+    // Updated camera follow with higher elevation for better visibility
     this.camera.position.set(
-        playerPos.x,
-        playerPos.y + 20, // Higher elevation
-        playerPos.z + 35  // Further back
+      playerPos.x,
+      playerPos.y + 25, // Higher elevation for better visibility
+      playerPos.z + 40  // Further back
     );
     this.camera.lookAt(playerPos);
 
