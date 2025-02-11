@@ -21,7 +21,7 @@ export class Tank {
     this.scene = scene;
     this.isPlayer = isPlayer;
     // Different speeds for player and enemies
-    this.speed = isPlayer ? 1.2 : 0.15; // Player speed
+    this.speed = isPlayer ? 1.92 : 0.15; // Increased player speed by 60% (from 1.2 to 1.92)
     this.rotationSpeed = isPlayer ? 0.1 : 0.04;
     this.mesh = new THREE.Group();
 
