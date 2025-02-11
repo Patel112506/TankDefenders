@@ -4,6 +4,14 @@ import { Level } from './level';
 import { PowerUp } from './powerup';
 import { UI } from './ui';
 
+interface UICallbacks {
+  onScoreUpdate: (score: number) => void;
+  onLevelUpdate: (level: number) => void;
+  onHealthUpdate: (health: number) => void;
+  onGameOver: () => void;
+  onLevelComplete: () => void;
+}
+
 export class GameEngine {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
@@ -15,7 +23,9 @@ export class GameEngine {
   private ui: UI;
   private isPaused: boolean = false;
   private raycaster: THREE.Raycaster;
-  private collisionMargin = 1.5; // Margin for tank collision detection
+  private collisionMargin = 1.5;
+  private levelNumber: number = 1;
+  private uiCallbacks?: UICallbacks;
 
   constructor(container: HTMLElement) {
     // Scene setup
@@ -38,7 +48,7 @@ export class GameEngine {
 
     // Initialize game objects
     this.playerTank = new Tank(this.scene, true);
-    this.currentLevel = new Level(this.scene, 1);
+    this.currentLevel = new Level(this.scene, this.levelNumber);
     this.ui = new UI();
     this.raycaster = new THREE.Raycaster();
 
@@ -47,17 +57,29 @@ export class GameEngine {
     document.addEventListener('keydown', this.handleInput.bind(this));
   }
 
+  setUICallbacks(callbacks: UICallbacks) {
+    this.uiCallbacks = callbacks;
+  }
+
   init() {
     this.currentLevel.load();
     this.spawnEnemies();
     this.animate();
+    this.updateUI();
+  }
+
+  private updateUI() {
+    if (this.uiCallbacks) {
+      this.uiCallbacks.onScoreUpdate(this.ui.getScore());
+      this.uiCallbacks.onLevelUpdate(this.levelNumber);
+      this.uiCallbacks.onHealthUpdate(this.ui.getHealth());
+    }
   }
 
   private spawnEnemies() {
     const enemyCount = this.currentLevel.getEnemyCount();
     for (let i = 0; i < enemyCount; i++) {
       const enemy = new Tank(this.scene, false);
-      // Spawn enemies at random positions away from the player
       const angle = (Math.PI * 2 * i) / enemyCount;
       const radius = 15 + Math.random() * 5;
       enemy.setPosition(
@@ -67,6 +89,37 @@ export class GameEngine {
       );
       this.enemies.push(enemy);
     }
+  }
+
+  startNextLevel() {
+    this.levelNumber++;
+    this.currentLevel.dispose();
+    this.enemies.forEach(enemy => enemy.dispose());
+    this.enemies = [];
+
+    this.currentLevel = new Level(this.scene, this.levelNumber);
+    this.currentLevel.load();
+    this.spawnEnemies();
+
+    this.isPaused = false;
+    this.animate();
+    this.updateUI();
+  }
+
+  restart() {
+    this.levelNumber = 1;
+    this.currentLevel.dispose();
+    this.enemies.forEach(enemy => enemy.dispose());
+    this.enemies = [];
+
+    this.ui = new UI();
+    this.currentLevel = new Level(this.scene, this.levelNumber);
+    this.currentLevel.load();
+    this.spawnEnemies();
+
+    this.isPaused = false;
+    this.animate();
+    this.updateUI();
   }
 
   private handleInput(event: KeyboardEvent) {
@@ -87,7 +140,6 @@ export class GameEngine {
       const distance = playerPos.distanceTo(enemyPos);
 
       if (distance < this.collisionMargin * 2) {
-        // Push tanks apart
         const direction = new THREE.Vector3()
           .subVectors(playerPos, enemyPos)
           .normalize();
@@ -114,9 +166,12 @@ export class GameEngine {
             enemy.dispose();
             this.enemies.splice(index, 1);
             this.ui.updateScore(100);
+            this.updateUI();
 
             if (this.enemies.length === 0) {
-              this.ui.showLevelComplete();
+              if (this.uiCallbacks) {
+                this.uiCallbacks.onLevelComplete();
+              }
               this.isPaused = true;
             }
           }
@@ -133,10 +188,12 @@ export class GameEngine {
         const distance = projectilePos.distanceTo(playerPos);
         if (distance < 2) { // Hit radius
           if (this.playerTank.takeDamage(projectile.getDamage())) {
-            // Game Over
-            this.ui.showGameOver();
+            if (this.uiCallbacks) {
+              this.uiCallbacks.onGameOver();
+            }
             this.isPaused = true;
           }
+          this.updateUI();
           projectile.dispose();
         }
       });
@@ -148,7 +205,6 @@ export class GameEngine {
 
     requestAnimationFrame(this.animate.bind(this));
 
-    // Update game objects
     const playerPos = this.playerTank.getPosition();
     this.playerTank.update();
     this.enemies.forEach(enemy => enemy.update(playerPos));
@@ -157,7 +213,6 @@ export class GameEngine {
     this.checkCollisions();
     this.checkProjectileCollisions();
 
-    // Update camera to follow player
     this.camera.position.set(
       playerPos.x, 
       playerPos.y + 10,
@@ -186,7 +241,6 @@ export class GameEngine {
   }
 
   dispose() {
-    // Clean up resources
     this.playerTank.dispose();
     this.enemies.forEach(enemy => enemy.dispose());
     this.powerUps.forEach(powerUp => powerUp.dispose());
