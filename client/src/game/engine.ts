@@ -187,13 +187,12 @@ export class GameEngine {
         const playerPos = this.playerTank.getPosition();
         const distance = projectilePos.distanceTo(playerPos);
         if (distance < 2) { // Hit radius
-          if (this.playerTank.takeDamage(projectile.getDamage())) {
-            if (this.uiCallbacks) {
-              this.uiCallbacks.onGameOver();
-            }
+          const isDead = this.playerTank.takeDamage(projectile.getDamage());
+          this.updateUI();
+          if (isDead && this.uiCallbacks) {
+            this.uiCallbacks.onGameOver();
             this.isPaused = true;
           }
-          this.updateUI();
           projectile.dispose();
         }
       });
@@ -252,5 +251,9 @@ export class GameEngine {
 
   getPlayerTank() {
     return this.playerTank;
+  }
+
+  getEnemyPositions() {
+    return this.enemies.map(enemy => enemy.getPosition());
   }
 }

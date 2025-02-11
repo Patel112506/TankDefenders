@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { GameEngine } from '../game/engine';
 import { Joystick } from '@/components/Joystick';
+import * as THREE from 'three';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Minimap } from '@/components/Minimap';
 
 export default function Game() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,6 +23,8 @@ export default function Game() {
   const [health, setHealth] = useState(100);
   const [showGameOver, setShowGameOver] = useState(false);
   const [showLevelComplete, setShowLevelComplete] = useState(false);
+  const [playerPosition, setPlayerPosition] = useState<THREE.Vector3>(new THREE.Vector3());
+  const [enemyPositions, setEnemyPositions] = useState<THREE.Vector3[]>([]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -47,6 +51,17 @@ export default function Game() {
     };
 
     window.addEventListener('keydown', handleKeyDown);
+
+    const updatePositions = () => {
+      if (gameRef.current) {
+        setPlayerPosition(gameRef.current.getPlayerTank()?.getPosition() || new THREE.Vector3());
+        setEnemyPositions(gameRef.current.getEnemyPositions() || []);
+      }
+      requestAnimationFrame(updatePositions);
+    };
+
+    updatePositions();
+
 
     return () => {
       gameRef.current?.dispose();
@@ -106,11 +121,21 @@ export default function Game() {
           </div>
         </Card>
 
-        <Card className="p-4 bg-opacity-80 pointer-events-auto">
-          <Button variant="secondary" onClick={() => gameRef.current?.pause()}>
-            Pause
-          </Button>
-        </Card>
+        <div className="flex flex-col gap-4">
+          <Card className="p-4 bg-opacity-80 pointer-events-auto">
+            <Button variant="secondary" onClick={() => gameRef.current?.pause()}>
+              Pause
+            </Button>
+          </Card>
+
+          <Card className="p-2 bg-opacity-80">
+            <Minimap
+              playerPosition={playerPosition}
+              enemyPositions={enemyPositions}
+              mapSize={50}
+            />
+          </Card>
+        </div>
       </div>
 
       {/* Game Over Dialog */}
