@@ -11,6 +11,11 @@ export class Tank {
   private scene: THREE.Scene;
   private lastShootTime = 0;
   private shootCooldown = 500; // milliseconds
+  private state: 'patrol' | 'chase' | 'attack' = 'patrol';
+  private patrolPoint: THREE.Vector3 = new THREE.Vector3();
+  private targetPosition: THREE.Vector3 = new THREE.Vector3();
+  private detectionRange = 20;
+  private attackRange = 15;
 
   constructor(scene: THREE.Scene, isPlayer: boolean) {
     this.scene = scene;
@@ -45,6 +50,10 @@ export class Tank {
     this.mesh.add(cannon);
 
     scene.add(this.mesh);
+
+    if (!isPlayer) {
+      this.setNewPatrolPoint();
+    }
   }
 
   handleInput(event: KeyboardEvent) {
@@ -69,8 +78,8 @@ export class Tank {
     }
   }
 
-  update() {
-    // Update projectiles and handle collisions
+  update(playerPosition?: THREE.Vector3) {
+    // Update projectiles
     this.projectiles = this.projectiles.filter(projectile => {
       projectile.update();
       if (projectile.isExpired()) {
@@ -81,20 +90,70 @@ export class Tank {
     });
 
     // AI behavior for enemy tanks
-    if (!this.isPlayer) {
-      this.updateAI();
+    if (!this.isPlayer && playerPosition) {
+      this.updateAI(playerPosition);
     }
   }
 
-  private updateAI() {
-    // Simple AI: move randomly and shoot occasionally
-    if (Math.random() < 0.02) {
-      this.rotate(Math.random() * this.rotationSpeed * 2 - this.rotationSpeed);
+  private updateAI(playerPosition: THREE.Vector3) {
+    const distanceToPlayer = this.mesh.position.distanceTo(playerPosition);
+
+    // Update AI state based on distance to player
+    if (distanceToPlayer <= this.attackRange) {
+      this.state = 'attack';
+      this.targetPosition.copy(playerPosition);
+    } else if (distanceToPlayer <= this.detectionRange) {
+      this.state = 'chase';
+      this.targetPosition.copy(playerPosition);
+    } else if (this.mesh.position.distanceTo(this.patrolPoint) < 1) {
+      this.setNewPatrolPoint();
+      this.state = 'patrol';
+      this.targetPosition.copy(this.patrolPoint);
     }
-    if (Math.random() < 0.01) {
-      this.shoot();
+
+    // Execute behavior based on state
+    switch (this.state) {
+      case 'patrol':
+        this.moveTowardsTarget(this.patrolPoint);
+        if (Math.random() < 0.01) this.shoot();
+        break;
+      case 'chase':
+        this.moveTowardsTarget(playerPosition);
+        if (Math.random() < 0.03) this.shoot();
+        break;
+      case 'attack':
+        this.moveTowardsTarget(playerPosition);
+        if (Math.random() < 0.1) this.shoot();
+        break;
     }
-    this.moveForward();
+  }
+
+  private moveTowardsTarget(target: THREE.Vector3) {
+    // Calculate direction to target
+    const direction = new THREE.Vector3()
+      .subVectors(target, this.mesh.position)
+      .normalize();
+
+    // Calculate angle to target
+    const angleToTarget = Math.atan2(direction.x, direction.z);
+    const currentAngle = this.mesh.rotation.y;
+
+    // Rotate towards target
+    const angleDiff = (angleToTarget - currentAngle + Math.PI) % (Math.PI * 2) - Math.PI;
+    if (Math.abs(angleDiff) > 0.1) {
+      this.rotate(Math.sign(angleDiff) * this.rotationSpeed);
+    } else {
+      this.moveForward();
+    }
+  }
+
+  private setNewPatrolPoint() {
+    // Set a new random patrol point within bounds
+    this.patrolPoint.set(
+      Math.random() * 40 - 20,
+      0,
+      Math.random() * 40 - 20
+    );
   }
 
   private moveForward() {
