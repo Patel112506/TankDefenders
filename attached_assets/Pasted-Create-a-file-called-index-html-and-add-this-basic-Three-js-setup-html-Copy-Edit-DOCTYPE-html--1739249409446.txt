@@ -1,0 +1,113 @@
+Create a file called index.html and add this basic Three.js setup:
+
+html
+Copy
+Edit
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Tank Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script type="module" src="game.js"></script>
+</body>
+</html>
+📌 Step 2: Creating the 3D World
+Now, create a file game.js and add the following Three.js setup with tank movement:
+
+javascript
+Copy
+Edit
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@latest/build/three.module.js';
+
+// Set up scene, camera, and renderer
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Create a battlefield (ground)
+const groundGeometry = new THREE.PlaneGeometry(50, 50);
+const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x007700, side: THREE.DoubleSide });
+const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+ground.rotation.x = -Math.PI / 2; // Rotate to be flat
+scene.add(ground);
+
+// Create player tank (for now, a cube)
+const tankGeometry = new THREE.BoxGeometry(1, 1, 2);
+const tankMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+const playerTank = new THREE.Mesh(tankGeometry, tankMaterial);
+playerTank.position.y = 0.5;
+scene.add(playerTank);
+
+// Create enemy tank (a red cube for now)
+const enemyTankGeometry = new THREE.BoxGeometry(1, 1, 2);
+const enemyTankMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+const enemyTank = new THREE.Mesh(enemyTankGeometry, enemyTankMaterial);
+enemyTank.position.set(5, 0.5, -5);
+scene.add(enemyTank);
+
+// Add lighting
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(10, 10, 10);
+scene.add(light);
+
+// Move camera to follow player tank
+camera.position.set(0, 5, 10);
+camera.lookAt(playerTank.position);
+
+// Tank movement variables
+const speed = 0.1;
+const rotationSpeed = 0.05;
+const keys = {};
+
+// Event listeners for movement
+document.addEventListener('keydown', (event) => { keys[event.key] = true; });
+document.addEventListener('keyup', (event) => { keys[event.key] = false; });
+
+// Game loop
+function animate() {
+    requestAnimationFrame(animate);
+
+    // Tank movement
+    if (keys['w']) { 
+        playerTank.position.x -= Math.sin(playerTank.rotation.y) * speed;
+        playerTank.position.z -= Math.cos(playerTank.rotation.y) * speed;
+    }
+    if (keys['s']) { 
+        playerTank.position.x += Math.sin(playerTank.rotation.y) * speed;
+        playerTank.position.z += Math.cos(playerTank.rotation.y) * speed;
+    }
+    if (keys['a']) { playerTank.rotation.y += rotationSpeed; }
+    if (keys['d']) { playerTank.rotation.y -= rotationSpeed; }
+
+    renderer.render(scene, camera);
+}
+animate();
+
+// Resize canvas on window resize
+window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+});
+🚀 Features in This Code
+✅ A 3D world with a battlefield
+✅ A green player tank that can move & rotate using WASD
+✅ A red enemy tank (doesn't move yet)
+✅ A camera that follows the player
+
+🔥 Next Steps
+Now that you have a basic 3D tank game framework, we can expand it:
+
+Shooting bullets 💥
+Enemy AI that moves & shoots 🎯
+Health system (damage & destruction) 🚀
+Levels with increasing difficulty 🔥
