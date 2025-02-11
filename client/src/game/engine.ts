@@ -14,6 +14,7 @@ export class GameEngine {
   private currentLevel: Level;
   private ui: UI;
   private isPaused: boolean = false;
+  private raycaster: THREE.Raycaster;
 
   constructor(container: HTMLElement) {
     // Scene setup
@@ -38,6 +39,7 @@ export class GameEngine {
     this.playerTank = new Tank(this.scene, true);
     this.currentLevel = new Level(this.scene, 1);
     this.ui = new UI();
+    this.raycaster = new THREE.Raycaster();
 
     // Event listeners
     window.addEventListener('resize', this.onWindowResize.bind(this));
@@ -68,6 +70,41 @@ export class GameEngine {
     }
   }
 
+  private checkProjectileCollisions() {
+    // Check player projectiles against enemies
+    this.playerTank.getProjectiles().forEach(projectile => {
+      const projectilePos = projectile.getPosition();
+      this.enemies.forEach((enemy, index) => {
+        const enemyPos = enemy.getPosition();
+        const distance = projectilePos.distanceTo(enemyPos);
+        if (distance < 2) { // Hit radius
+          if (enemy.takeDamage(projectile.getDamage())) {
+            enemy.dispose();
+            this.enemies.splice(index, 1);
+          }
+          projectile.dispose();
+        }
+      });
+    });
+
+    // Check enemy projectiles against player
+    this.enemies.forEach(enemy => {
+      enemy.getProjectiles().forEach(projectile => {
+        const projectilePos = projectile.getPosition();
+        const playerPos = this.playerTank.getPosition();
+        const distance = projectilePos.distanceTo(playerPos);
+        if (distance < 2) { // Hit radius
+          if (this.playerTank.takeDamage(projectile.getDamage())) {
+            // Game Over
+            this.ui.showGameOver();
+            this.isPaused = true;
+          }
+          projectile.dispose();
+        }
+      });
+    });
+  }
+
   private animate() {
     if (this.isPaused) return;
 
@@ -77,7 +114,7 @@ export class GameEngine {
     this.playerTank.update();
     this.enemies.forEach(enemy => enemy.update());
     this.powerUps.forEach(powerUp => powerUp.update());
-    this.checkCollisions();
+    this.checkProjectileCollisions();
 
     // Update camera to follow player
     const playerPos = this.playerTank.getPosition();
@@ -89,10 +126,6 @@ export class GameEngine {
     this.camera.lookAt(playerPos);
 
     this.renderer.render(this.scene, this.camera);
-  }
-
-  private checkCollisions() {
-    // Implement collision detection between tanks, projectiles, and power-ups
   }
 
   private onWindowResize() {
@@ -114,6 +147,10 @@ export class GameEngine {
 
   dispose() {
     // Clean up resources
+    this.playerTank.dispose();
+    this.enemies.forEach(enemy => enemy.dispose());
+    this.powerUps.forEach(powerUp => powerUp.dispose());
+    this.currentLevel.dispose();
     this.renderer.dispose();
     window.removeEventListener('resize', this.onWindowResize);
     document.removeEventListener('keydown', this.handleInput);

@@ -8,8 +8,12 @@ export class Tank {
   private health = 100;
   private projectiles: Projectile[] = [];
   private isPlayer: boolean;
+  private scene: THREE.Scene;
+  private lastShootTime = 0;
+  private shootCooldown = 500; // milliseconds
 
   constructor(scene: THREE.Scene, isPlayer: boolean) {
+    this.scene = scene;
     this.isPlayer = isPlayer;
     this.mesh = new THREE.Group();
 
@@ -66,10 +70,14 @@ export class Tank {
   }
 
   update() {
-    // Update projectiles
+    // Update projectiles and handle collisions
     this.projectiles = this.projectiles.filter(projectile => {
       projectile.update();
-      return !projectile.isExpired();
+      if (projectile.isExpired()) {
+        projectile.dispose();
+        return false;
+      }
+      return true;
     });
 
     // AI behavior for enemy tanks
@@ -106,12 +114,24 @@ export class Tank {
   }
 
   private shoot() {
+    const currentTime = Date.now();
+    if (currentTime - this.lastShootTime < this.shootCooldown) {
+      return;
+    }
+
+    const projectilePosition = new THREE.Vector3();
+    this.mesh.getWorldPosition(projectilePosition);
+    projectilePosition.y += 0.75; // Adjust to match cannon height
+
     const projectile = new Projectile(
-      this.mesh.position.clone(),
+      this.scene,
+      projectilePosition,
       this.mesh.rotation.y,
       this.isPlayer
     );
+
     this.projectiles.push(projectile);
+    this.lastShootTime = currentTime;
   }
 
   takeDamage(amount: number) {
@@ -125,5 +145,20 @@ export class Tank {
 
   setPosition(x: number, y: number, z: number) {
     this.mesh.position.set(x, y, z);
+  }
+
+  getProjectiles() {
+    return this.projectiles;
+  }
+
+  dispose() {
+    this.projectiles.forEach(projectile => projectile.dispose());
+    this.scene.remove(this.mesh);
+    this.mesh.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        (child.material as THREE.Material).dispose();
+      }
+    });
   }
 }
