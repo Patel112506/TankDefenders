@@ -37,7 +37,7 @@ export class Level {
     for (let i = 0; i < positions.length; i += 3) {
       const x = Math.floor((i / 3) % this.terrainResolution);
       const z = Math.floor((i / 3) / this.terrainResolution);
-      positions[i + 1] = terrainData[z][x].elevation;
+      positions[i + 1] = terrainData[z][x].elevation * 3; // Amplify elevation for more dramatic hills
     }
     groundGeometry.computeVertexNormals();
 
@@ -55,11 +55,52 @@ export class Level {
     dirtTexture.repeat.set(20, 20);
     sandTexture.repeat.set(20, 20);
 
+    // Create custom shader material for terrain blending
     const groundMaterial = new THREE.MeshStandardMaterial({
-      map: grassTexture,
+      vertexColors: true,
       roughness: 0.8,
       metalness: 0.1,
     });
+
+    // Apply vertex colors based on height and slope
+    const colors = new Float32Array(positions.length);
+    const normal = new THREE.Vector3();
+
+    for (let i = 0; i < positions.length; i += 3) {
+      const height = positions[i + 1];
+      const x = Math.floor((i / 3) % this.terrainResolution);
+      const z = Math.floor((i / 3) / this.terrainResolution);
+
+      // Calculate slope using normal
+      normal.set(
+        positions[i],
+        positions[i + 1],
+        positions[i + 2]
+      ).normalize();
+      const slope = 1 - normal.dot(new THREE.Vector3(0, 1, 0));
+
+      // Color based on height and slope
+      let color = new THREE.Color();
+      if (height > 2) {
+        // Snow on high peaks
+        color.setRGB(0.95, 0.95, 0.95);
+      } else if (height > 1 || slope > 0.5) {
+        // Rocky/dirt on steep slopes or medium height
+        color.setRGB(0.6, 0.5, 0.4);
+      } else if (height > 0) {
+        // Grass on normal terrain
+        color.setRGB(0.2, 0.6, 0.2);
+      } else {
+        // Sand in valleys
+        color.setRGB(0.8, 0.7, 0.5);
+      }
+
+      colors[i] = color.r;
+      colors[i + 1] = color.g;
+      colors[i + 2] = color.b;
+    }
+
+    groundGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     this.terrain = new THREE.Mesh(groundGeometry, groundMaterial);
     this.terrain.rotation.x = -Math.PI / 2;
@@ -83,15 +124,20 @@ export class Level {
         const nx = x / this.terrainResolution - 0.5;
         const nz = z / this.terrainResolution - 0.5;
 
-        // Generate elevation using multiple octaves of noise
+        // Generate elevation using multiple octaves of noise for more detail
         let elevation = 0;
-        elevation += noise2D(nx * 2, nz * 2) * 2;
-        elevation += noise2D(nx * 4, nz * 4) * 1;
-        elevation += noise2D(nx * 8, nz * 8) * 0.5;
+        elevation += noise2D(nx * 2, nz * 2) * 1.0;  // Large features
+        elevation += noise2D(nx * 4, nz * 4) * 0.5;  // Medium features
+        elevation += noise2D(nx * 8, nz * 8) * 0.25; // Small features
+        elevation += noise2D(nx * 16, nz * 16) * 0.125; // Fine details
 
-        // Determine terrain type based on elevation and moisture
+        // Add some crater-like formations
+        const distance = Math.sqrt(nx * nx + nz * nz) * 3;
+        elevation -= Math.exp(-distance * distance) * 0.5;
+
+        // Determine terrain type based on elevation and noise
         let type: 'grass' | 'dirt' | 'sand';
-        if (elevation > 1) {
+        if (elevation > 0.6) {
           type = 'dirt';
         } else if (elevation > 0) {
           type = 'grass';
@@ -109,7 +155,11 @@ export class Level {
   private addDecorations(terrainData: TerrainPoint[][]) {
     // Add rocks
     const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
-    const rockMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+    const rockMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0x808080,
+      roughness: 0.9,
+      metalness: 0.1,
+    });
 
     for (let i = 0; i < 50; i++) {
       const rock = new THREE.Mesh(rockGeometry, rockMaterial);
@@ -119,7 +169,7 @@ export class Level {
       // Find the elevation at this point
       const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * this.terrainResolution);
       const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * this.terrainResolution);
-      const elevation = terrainData[terrainZ][terrainX].elevation;
+      const elevation = terrainData[terrainZ][terrainX].elevation * 3; // Match the amplified terrain
 
       rock.position.set(x, elevation + 0.5, z);
       rock.scale.set(
