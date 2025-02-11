@@ -27,7 +27,7 @@ export function Joystick({ onMove, onEnd }: JoystickProps) {
       if (data.angle && data.force) {
         onMove({
           angle: (data.angle.radian + Math.PI) % (2 * Math.PI),
-          force: Math.min(data.force / 15, 1), // Increased sensitivity further by reducing denominator from 25 to 15
+          force: Math.min(data.force / 30, 1), // Decreased sensitivity for better control
         });
       }
     });
@@ -42,7 +42,7 @@ export function Joystick({ onMove, onEnd }: JoystickProps) {
   return (
     <div 
       ref={containerRef}
-      className="fixed bottom-20 left-20 w-48 h-48 bg-black/20 rounded-full" // Increased size further for better control
+      className="fixed bottom-20 left-20 w-48 h-48 bg-black/20 rounded-full" 
       style={{ touchAction: 'none' }}
     />
   );

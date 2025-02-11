@@ -21,8 +21,8 @@ export class Tank {
     this.scene = scene;
     this.isPlayer = isPlayer;
     // Different speeds for player and enemies
-    this.speed = isPlayer ? 40 : 0.15; // Dramatically increased player speed for better responsiveness
-    this.rotationSpeed = isPlayer ? 0.25 : 0.04; // Increased rotation speed for even better turning
+    this.speed = isPlayer ? 6 : 0.15; // Adjusted to move about 2x tank length per press
+    this.rotationSpeed = isPlayer ? 0.25 : 0.04;
     // Different health values for player and enemies
     this.health = isPlayer ? 500 : 300; // Player: 500 HP, Enemies: 300 HP
     this.mesh = new THREE.Group();
