@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { Projectile } from './projectile';
 
+enum PowerUpType {
+  Health,
+  Attack
+}
+
 export class Tank {
   private speed: number;
   private rotationSpeed: number;
@@ -16,6 +21,9 @@ export class Tank {
   private detectionRange = 15;
   private attackRange = 10;
   private keys: { [key: string]: boolean } = {};
+  private attackBoostActive = false;
+  private attackBoostEndTime = 0;
+  private baseProjectileDamage = 120; // Base damage for player projectiles
 
   handleInput(event: KeyboardEvent) {
     if (!this.isPlayer) return;
@@ -94,6 +102,20 @@ export class Tank {
     }
   }
 
+  applyPowerUp(type: PowerUpType) {
+    switch (type) {
+      case PowerUpType.Health:
+        if (this.health < 500) {
+          this.health = Math.min(500, this.health + 200);
+        }
+        break;
+      case PowerUpType.Attack:
+        this.attackBoostActive = true;
+        this.attackBoostEndTime = Date.now() + 30000; // 30 seconds
+        break;
+    }
+  }
+
   update(playerPosition?: THREE.Vector3) {
     if (this.isPlayer) {
       // Handle keyboard movement
@@ -114,6 +136,11 @@ export class Tank {
       this.updateAI(playerPosition);
     }
 
+    // Check if attack boost has expired
+    if (this.attackBoostActive && Date.now() > this.attackBoostEndTime) {
+      this.attackBoostActive = false;
+    }
+
     // Update projectiles
     this.projectiles = this.projectiles.filter(projectile => {
       projectile.update();
@@ -125,9 +152,40 @@ export class Tank {
     });
   }
 
+  setAIDifficulty(level: number) {
+    if (!this.isPlayer) {
+      // Adjust detection and attack ranges based on level
+      this.detectionRange = 10 + level * 2; // Increases from 12 to 20
+      this.attackRange = 5 + level * 1.5; // Increases from 6.5 to 12.5
+
+      // Adjust movement speed based on level
+      this.speed = 0.1 + (level * 0.02); // Increases from 0.12 to 0.2
+
+      // Adjust shooting frequency based on level
+      switch (level) {
+        case 1:
+          this.shootCooldown = 2000; // 2 seconds between shots
+          break;
+        case 2:
+          this.shootCooldown = 1500; // 1.5 seconds
+          break;
+        case 3:
+          this.shootCooldown = 1000; // 1 second
+          break;
+        case 4:
+          this.shootCooldown = 800; // 0.8 seconds
+          break;
+        case 5:
+          this.shootCooldown = 600; // 0.6 seconds
+          break;
+      }
+    }
+  }
+
   private updateAI(playerPosition: THREE.Vector3) {
     const distanceToPlayer = this.mesh.position.distanceTo(playerPosition);
 
+    // More aggressive behavior in higher levels (controlled by detection and attack ranges)
     if (distanceToPlayer <= this.attackRange) {
       this.state = 'attack';
       this.targetPosition.copy(playerPosition);
@@ -205,11 +263,22 @@ export class Tank {
     this.mesh.getWorldPosition(projectilePosition);
     projectilePosition.y += 0.75;
 
+    // Calculate damage with attack boost
+    let damage = this.baseProjectileDamage;
+    if (this.attackBoostActive) {
+      if (currentTime > this.attackBoostEndTime) {
+        this.attackBoostActive = false;
+      } else {
+        damage *= 1.5; // 50% damage boost
+      }
+    }
+
     const projectile = new Projectile(
       this.scene,
       projectilePosition,
       this.mesh.rotation.y,
-      this.isPlayer
+      this.isPlayer,
+      damage
     );
 
     this.projectiles.push(projectile);

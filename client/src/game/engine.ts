@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Tank } from './tank';
 import { Level } from './level';
-import { PowerUp } from './powerup';
+import { PowerUp, PowerUpType } from './powerup'; // Assuming PowerUpType exists here
 import { UI } from './ui';
 
 interface UICallbacks {
@@ -26,6 +26,8 @@ export class GameEngine {
   private collisionMargin = 1.5;
   private levelNumber: number = 1;
   private uiCallbacks?: UICallbacks;
+  private powerUpSpawnInterval = 15000; // Spawn power-up every 15 seconds
+  private lastPowerUpSpawn = 0;
 
   constructor(container: HTMLElement) {
     // Scene setup
@@ -88,9 +90,25 @@ export class GameEngine {
         0,
         Math.sin(angle) * radius
       );
+
+      // Adjust AI based on level
+      enemy.setAIDifficulty(this.levelNumber);
+
       this.enemies.push(enemy);
     }
   }
+
+  private spawnPowerUp() {
+    const randomType = Math.random() < 0.5 ? PowerUpType.Health : PowerUpType.Attack;
+    const position = new THREE.Vector3(
+      Math.random() * 40 - 20,
+      1,
+      Math.random() * 40 - 20
+    );
+    const powerUp = new PowerUp(this.scene, randomType, position);
+    this.powerUps.push(powerUp);
+  }
+
 
   startNextLevel() {
     this.levelNumber++;
@@ -152,6 +170,22 @@ export class GameEngine {
         enemy.setPosition(enemyPos.x, enemyPos.y, enemyPos.z);
       }
     }
+
+    // Check power-up collisions
+    this.powerUps = this.powerUps.filter(powerUp => {
+      if (powerUp.isCollected()) return false;
+
+      const powerUpPos = powerUp.getPosition();
+      const playerPos = this.playerTank.getPosition();
+      const distance = powerUpPos.distanceTo(playerPos);
+
+      if (distance < 2) { // Collection radius
+        this.playerTank.applyPowerUp(powerUp.getType());
+        powerUp.collect();
+        return false;
+      }
+      return true;
+    });
   }
 
   private checkProjectileCollisions() {
@@ -203,6 +237,13 @@ export class GameEngine {
     if (this.isPaused) return;
 
     requestAnimationFrame(this.animate.bind(this));
+
+    // Spawn power-ups periodically
+    const currentTime = Date.now();
+    if (currentTime - this.lastPowerUpSpawn > this.powerUpSpawnInterval) {
+      this.spawnPowerUp();
+      this.lastPowerUpSpawn = currentTime;
+    }
 
     const playerPos = this.playerTank.getPosition();
     this.playerTank.update();
