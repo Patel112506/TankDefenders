@@ -140,8 +140,8 @@ export function Minimap({ playerPosition, enemyPositions, mapSize }: MinimapProp
   return (
     <canvas
       ref={canvasRef}
-      width={300}
-      height={300}
+      width={200}
+      height={200}
       className="border border-white/20 rounded-lg shadow-lg"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
     />

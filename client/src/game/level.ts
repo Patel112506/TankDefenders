@@ -3,17 +3,18 @@ import { createNoise2D } from 'simplex-noise';
 
 interface TerrainPoint {
   elevation: number;
-  type: 'grass' | 'dirt' | 'sand';
+  type: 'sand' | 'rock' | 'mountain';
 }
 
 export class Level {
   private scene: THREE.Scene;
   private levelNumber: number;
   private obstacles: THREE.Mesh[] = [];
-  private mapSize = 200; // Doubled map size for more expansive terrain
-  private terrainResolution = 200; // Increased resolution for better detail
+  private mapSize = 400; // Large desert area
+  private terrainResolution = 400;
   private terrain!: THREE.Mesh;
   private decorations: THREE.Mesh[] = [];
+  private towers: THREE.Group[] = [];
 
   constructor(scene: THREE.Scene, levelNumber: number) {
     this.scene = scene;
@@ -37,14 +38,14 @@ export class Level {
     for (let i = 0; i < positions.length; i += 3) {
       const x = Math.floor((i / 3) % this.terrainResolution);
       const z = Math.floor((i / 3) / this.terrainResolution);
-      positions[i + 1] = terrainData[z][x].elevation * 3; // Amplify elevation for more dramatic hills
+      positions[i + 1] = terrainData[z][x].elevation * 4; // More dramatic dunes
     }
     groundGeometry.computeVertexNormals();
 
-    // Create custom shader material for terrain blending
+    // Create custom shader material for desert terrain
     const groundMaterial = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      roughness: 0.8,
+      roughness: 0.9,
       metalness: 0.1,
     });
 
@@ -57,7 +58,6 @@ export class Level {
       const x = Math.floor((i / 3) % this.terrainResolution);
       const z = Math.floor((i / 3) / this.terrainResolution);
 
-      // Calculate slope using normal
       normal.set(
         positions[i],
         positions[i + 1],
@@ -65,20 +65,20 @@ export class Level {
       ).normalize();
       const slope = 1 - normal.dot(new THREE.Vector3(0, 1, 0));
 
-      // Color based on height and slope
+      // Desert color palette
       let color = new THREE.Color();
-      if (height > 2) {
-        // Snow on high peaks
-        color.setRGB(0.95, 0.95, 0.95);
-      } else if (height > 1 || slope > 0.5) {
-        // Rocky/dirt on steep slopes or medium height
-        color.setRGB(0.6, 0.5, 0.4);
-      } else if (height > 0) {
-        // Grass on normal terrain
-        color.setRGB(0.2, 0.6, 0.2);
+      if (height > 3) {
+        // Rocky mountains
+        color.setRGB(0.55, 0.5, 0.45);
+      } else if (slope > 0.5) {
+        // Steep rocky slopes
+        color.setRGB(0.6, 0.55, 0.5);
+      } else if (height > 1) {
+        // Light sand dunes
+        color.setRGB(0.95, 0.9, 0.7);
       } else {
-        // Sand in valleys
-        color.setRGB(0.8, 0.7, 0.5);
+        // Dark sand valleys
+        color.setRGB(0.85, 0.8, 0.6);
       }
 
       colors[i] = color.r;
@@ -95,9 +95,7 @@ export class Level {
 
     // Add decorative elements
     this.addDecorations(terrainData);
-
-    // Add obstacles based on level number
-    this.createObstacles();
+    this.addTowers(terrainData);
   }
 
   private generateTerrainData(): TerrainPoint[][] {
@@ -110,31 +108,26 @@ export class Level {
         const nx = x / this.terrainResolution - 0.5;
         const nz = z / this.terrainResolution - 0.5;
 
-        // Generate elevation using multiple octaves of noise for more detail
+        // Generate sand dunes using multiple noise layers
         let elevation = 0;
-        elevation += noise2D(nx * 2, nz * 2) * 1.0;  // Large features
-        elevation += noise2D(nx * 4, nz * 4) * 0.5;  // Medium features
-        elevation += noise2D(nx * 8, nz * 8) * 0.25; // Small features
-        elevation += noise2D(nx * 16, nz * 16) * 0.125; // Fine details
+        elevation += noise2D(nx * 1.5, nz * 1.5) * 1.0;  // Large dunes
+        elevation += noise2D(nx * 3, nz * 3) * 0.5;     // Medium dunes
+        elevation += noise2D(nx * 6, nz * 6) * 0.25;    // Small ripples
 
-        // Add some crater-like formations for more variety
-        const distance = Math.sqrt(nx * nx + nz * nz) * 3;
-        elevation -= Math.exp(-distance * distance) * 0.5;
+        // Create some mountain ranges
+        const ridgeNoise = Math.abs(noise2D(nx * 2, nz * 2));
+        elevation += Math.pow(ridgeNoise, 2) * 2;
 
-        // Add some plateaus and valleys using a threshold function
-        elevation = Math.pow(Math.abs(elevation), 0.8) * Math.sign(elevation);
+        // Make the terrain more interesting with valleys
+        const distance = Math.sqrt(nx * nx + nz * nz) * 2;
+        elevation -= Math.exp(-distance * distance) * 0.3;
 
-        // Amplify the elevation further
-        elevation *= 2;
-
-        // Determine terrain type based on elevation and additional noise for variety
-        const moistureNoise = noise2D(nx * 3, nz * 3) * 0.5;
-        let type: 'grass' | 'dirt' | 'sand';
-
-        if (elevation > 0.6) {
-          type = 'dirt';
-        } else if (elevation > -0.2 + moistureNoise) {
-          type = 'grass';
+        // Determine terrain type
+        let type: 'sand' | 'rock' | 'mountain';
+        if (elevation > 2) {
+          type = 'mountain';
+        } else if (elevation > 1) {
+          type = 'rock';
         } else {
           type = 'sand';
         }
@@ -147,32 +140,29 @@ export class Level {
   }
 
   private addDecorations(terrainData: TerrainPoint[][]) {
-    // Add rocks with more variety in size and placement
+    // Add rocks with desert weathering
     const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
     const rockMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x808080,
-      roughness: 0.9,
+      color: 0x8B7355,  // Desert rock color
+      roughness: 1.0,
       metalness: 0.1,
     });
 
-    // Add more rocks for a denser landscape
-    for (let i = 0; i < 200; i++) { // Doubled rock count
+    for (let i = 0; i < 300; i++) {
       const rock = new THREE.Mesh(rockGeometry, rockMaterial);
       const x = Math.random() * this.mapSize - this.mapSize / 2;
       const z = Math.random() * this.mapSize - this.mapSize / 2;
 
-      // Find the elevation at this point
       const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * this.terrainResolution);
       const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * this.terrainResolution);
-      const elevation = terrainData[terrainZ][terrainX].elevation * 3;
+      const elevation = terrainData[terrainZ][terrainX].elevation * 4;
 
-      // Only place rocks on higher ground
-      if (elevation > 0) {
+      if (elevation > 1) {
         rock.position.set(x, elevation + 0.5, z);
         rock.scale.set(
-          0.5 + Math.random() * 1.5,
-          0.5 + Math.random() * 1.5,
-          0.5 + Math.random() * 1.5
+          0.5 + Math.random() * 2,
+          0.5 + Math.random() * 2,
+          0.5 + Math.random() * 2
         );
         rock.rotation.set(
           Math.random() * Math.PI,
@@ -186,23 +176,38 @@ export class Level {
     }
   }
 
-  private createObstacles() {
-    const obstacleCount = 5 + this.levelNumber * 2;
+  private addTowers(terrainData: TerrainPoint[][]) {
+    // Add communication towers like in the reference image
+    for (let i = 0; i < 4; i++) {
+      const tower = new THREE.Group();
 
-    for (let i = 0; i < obstacleCount; i++) {
-      const geometry = new THREE.BoxGeometry(2, 2, 2);
-      const material = new THREE.MeshPhongMaterial({ color: 0x808080 });
-      const obstacle = new THREE.Mesh(geometry, material);
+      // Tower base
+      const baseGeometry = new THREE.BoxGeometry(2, 1, 2);
+      const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
+      const base = new THREE.Mesh(baseGeometry, baseMaterial);
 
-      // Random position within the larger map
-      obstacle.position.set(
-        Math.random() * (this.mapSize - 10) - (this.mapSize / 2 - 5),
-        1,
-        Math.random() * (this.mapSize - 10) - (this.mapSize / 2 - 5)
-      );
+      // Tower structure
+      const poleGeometry = new THREE.CylinderGeometry(0.2, 0.2, 15);
+      const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+      const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+      pole.position.y = 7.5;
 
-      this.obstacles.push(obstacle);
-      this.scene.add(obstacle);
+      tower.add(base);
+      tower.add(pole);
+
+      // Position tower
+      const angle = (Math.PI * 2 * i) / 4;
+      const radius = this.mapSize / 4;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      const terrainX = Math.floor((x + this.mapSize / 2) / this.mapSize * this.terrainResolution);
+      const terrainZ = Math.floor((z + this.mapSize / 2) / this.mapSize * this.terrainResolution);
+      const elevation = terrainData[terrainZ][terrainX].elevation * 4;
+
+      tower.position.set(x, elevation, z);
+      this.towers.push(tower);
+      this.scene.add(tower);
     }
   }
 
@@ -231,6 +236,16 @@ export class Level {
       this.scene.remove(decoration);
       decoration.geometry.dispose();
       (decoration.material as THREE.Material).dispose();
+    });
+
+    this.towers.forEach(tower => {
+      this.scene.remove(tower);
+      tower.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose();
+          (child.material as THREE.Material).dispose();
+        }
+      });
     });
   }
 }
