@@ -5,7 +5,7 @@ export class Projectile {
   private velocity: THREE.Vector3;
   private speed = 0.4; 
   private lifetime = 100;
-  private damage = 25;
+  private damage = 100; // Set damage to 100 per hit
   private isPlayerProjectile: boolean;
   private scene: THREE.Scene;
 
@@ -21,7 +21,6 @@ export class Projectile {
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.position.copy(position);
 
-    
     this.velocity = new THREE.Vector3(
       Math.sin(rotation) * this.speed,
       0,
@@ -33,7 +32,6 @@ export class Projectile {
   }
 
   update() {
-    
     this.mesh.position.add(this.velocity);
     this.lifetime--;
   }

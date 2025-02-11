@@ -97,7 +97,8 @@ export default function Game() {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span>Health:</span>
-              <Progress value={health} className="w-32" />
+              <Progress value={(health / 500) * 100} className="w-32" />
+              <span className="text-sm">{health}/500</span>
             </div>
             <div>Level: {level}</div>
             <div>Score: {score}</div>

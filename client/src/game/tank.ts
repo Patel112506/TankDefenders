@@ -4,7 +4,7 @@ import { Projectile } from './projectile';
 export class Tank {
   private speed: number;
   private rotationSpeed: number;
-  private health = 100;
+  private health: number;
   private projectiles: Projectile[] = [];
   private isPlayer: boolean;
   private scene: THREE.Scene;
@@ -23,6 +23,8 @@ export class Tank {
     // Different speeds for player and enemies
     this.speed = isPlayer ? 1.92 : 0.15; // Increased player speed by 60% (from 1.2 to 1.92)
     this.rotationSpeed = isPlayer ? 0.1 : 0.04;
+    // Different health values for player and enemies
+    this.health = isPlayer ? 500 : 300; // Player: 500 HP, Enemies: 300 HP
     this.mesh = new THREE.Group();
 
     // Tank body
@@ -195,8 +197,12 @@ export class Tank {
   }
 
   takeDamage(amount: number) {
-    this.health -= amount;
+    this.health -= 100; // Fixed damage of 100
     return this.health <= 0;
+  }
+
+  getHealth() {
+    return this.health;
   }
 
   getPosition() {
